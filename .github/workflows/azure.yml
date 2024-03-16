@@ -1,0 +1,19 @@
+name: Azure App Service Build and Deploy
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      # Вставьте шаги сборки вашего приложения здесь
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      # Добавьте шаги для развертывания вашего приложения на Azure App Service

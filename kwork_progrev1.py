@@ -152,8 +152,8 @@ async def progrev_func_gaida(update: Update, context: ContextTypes.DEFAULT_TYPE)
     context.job_queue.run_once(sendmesage, time_delta, chat_id=update.effective_user.id, data=progrev_started)
     context.user_data["progrev_started"] = True
 
-
-
+#фича
+    
 async def sendmesage(context: ContextTypes.DEFAULT_TYPE):
     job = context.job
     if job.data:

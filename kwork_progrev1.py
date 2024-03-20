@@ -154,6 +154,9 @@ async def progrev_func_gaida(update: Update, context: ContextTypes.DEFAULT_TYPE)
 
 #фича
     
+async def new_feature():
+    print('hello_world')
+    
 async def sendmesage(context: ContextTypes.DEFAULT_TYPE):
     job = context.job
     if job.data:

@@ -149,4 +149,3 @@ async def reg_info(update: Update, context: ContextTypes.DEFAULT_TYPE):
             )
         return CHOOSE_OPTION
     return await linkedin(update, context)
-

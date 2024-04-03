@@ -37,7 +37,7 @@ logging.getLogger("httpx").setLevel(logging.WARNING)
 
 logger = logging.getLogger(__name__)
 
-MIDLE_OPTION, CHOOSE_OPTION, REGISTRATION_INFO, REMINDER, ADD_TASK, ROLE, CITY, COMENTS, LIKES, REPOSTS, CHOOSE_TYPE, GET_TASK = range(1, 12)
+CHOOSE_OPTION, REGISTRATION_INFO, REMINDER, ADD_TASK, ROLE, CITY, COMENTS, LIKES, REPOSTS, CHOOSE_TYPE, GET_TASK, TAKS_TIMER = range(1, 14)
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     cursor = connection.cursor()
@@ -152,7 +152,7 @@ async def menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def choose_option(update: Update, context: ContextTypes.DEFAULT_TYPE):
     cursor = connection.cursor()
-    if update.effective_message.id == "Добавить задачу":
+    if update.effective_message.text == "Добавить задачу":
         cursor.execute('''SELECT status FROM registr WHERE id = %s;''', (update.effective_user.id,))
         status = cursor.fetchone()[0]
         status = int(status)
@@ -165,11 +165,13 @@ async def choose_option(update: Update, context: ContextTypes.DEFAULT_TYPE):
             return await menu(update, context)
         else:
             return write_function(update, context)
-    
+    elif update.effective_message.text == "Решать задачи":
+        return await send_top5(update, context)
 async def write_function(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await context.bot.send_message(
         chat_id=update.effective_chat.id,
         text="Напишите вашу ссылку на linkein"
+    
     )
     return ADD_TASK
 async def add_task(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -181,6 +183,7 @@ async def add_task(update: Update, context: ContextTypes.DEFAULT_TYPE):
                           linked_url VARCHAR(300),
                           many INTEGER,
                           much INTEGER,
+                          rating INTEGER REFERENCES registr(engage_rate),
                           user_id INTEGER REFERENCES registr(id));'''
     cursor.execute(create_table_query)
     connection.commit()
@@ -335,9 +338,69 @@ async def many_reposts(update: Update, context: ContextTypes.DEFAULT_TYPE):
     else:
         await context.bot.send_message(
             chat_id=update.effective_chat.id,
-            tetx="количество репотво не модет привышать один за одно задание"
+            tetx="количество репотво не может привышать один за одно задание"
         )
         return await many_reposts_text(update, context)
 
+async def send_top5(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    reply_keyboard = [["Да, конечно","Нет, вернуться в меню"]]
+    cursor = connection.cursor()
+    await context.bot.send_message(
+        chat_id=update.effective_chat.id,
+        text="Сейчас вы получите пять задач для выполнения, после выполнения ваш рейтинг вырастет"
+    )
+    cursor.execute('''
+            SELECT task_type, linked_url, many, task_id 
+            FROM add_task
+            ORDER BY rating DESC
+            LIMIT 5;
+        ''')
+    # Получаем результат запроса
+    top_tasks = cursor.fetchall()
+    for task_type, linked_url, many in top_tasks: 
+        await context.bot.send_message(
+        chat_id=update.effective_chat.id,
+        text=f"""
+        Ссылка на задачу:{linked_url}
+        Тип задания:{task_type}
+        Желаемое количество:{many}"""
+    )
+    await context.bot.send_message(
+        chat_id=update.effective_chat.id,
+        text="Готовы ли выполнить эти задани?",
+        reply_markup=ReplyKeyboardMarkup(
+            reply_keyboard,
+            resize_keyboard=True,
+            one_time_keyboard=True
+        )
+    )
+def main():
+    application = (
+        ApplicationBuilder()
+        .token("6805939160:AAGhkI4RFmxrnd3278VPbd_oBYMN7KFObJ4")
+        .build()
+    )
+    conv_handler = ConversationHandler(
+        entry_points=[CommandHandler("start", start)],
+        states={CHOOSE_OPTION: [MessageHandler(filters.TEXT, choose_option)],
+                CHOOSE_TYPE: [MessageHandler(filters.TEXT, choose_type)],
+                LIKES: [MessageHandler(filters.TEXT, many_likes)],
+                COMENTS: [MessageHandler(filters.TEXT, many_coments)],
+                REPOSTS: [MessageHandler(filters.TEXT, many_reposts)],
+                ADD_TASK: [MessageHandler(filters.TEXT, add_task)],
+                CITY: [MessageHandler(filters.TEXT, city)],
+                ROLE: [MessageHandler(filters.TEXT, role)],
+                REGISTRATION_INFO: [MessageHandler(filters.TEXT, reg_info)],
 
-    
+                },
+        fallbacks=[],
+    )
+
+
+    application.add_handler(conv_handler)
+
+    application.run_polling(allowed_updates=Update.ALL_TYPES)
+
+
+if __name__ == "__main__":
+    main()

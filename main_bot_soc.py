@@ -18,15 +18,24 @@ import geopy
 import pytz
 from tzwhere import tzwhere
 import uuid
+from geopy.geocoders import Nominatim
+from timezonefinder import TimezoneFinder
 
 dbname = "postgres"
-user = "vsevolod12"
+user = "postgres"
 password = "Vm205912"
 host = "localhost" 
 port = "5432" 
 
 
-connection = psycopg2.connect(dbname=dbname, user=user, password=password, host=host, port=port)
+try:
+    connection = psycopg2.connect(dbname=dbname, user=user, password=password, host=host, port=port)
+    cursor = connection.cursor()
+    print("Подключение к базе данных успешно!")
+
+
+except (Exception, psycopg2.Error) as error:
+    print("Ошибка при подключении к базе данных PostgreSQL:", error)
 
 
 logging.basicConfig(
@@ -37,7 +46,7 @@ logging.getLogger("httpx").setLevel(logging.WARNING)
 
 logger = logging.getLogger(__name__)
 
-CHOOSE_OPTION, REGISTRATION_INFO, REMINDER, ADD_TASK, ROLE, CITY, COMENTS, LIKES, REPOSTS, CHOOSE_TYPE, GET_TASK, TAKS_TIMER = range(1, 14)
+CHOOSE_OPTION, REGISTRATION_INFO, ADD_TASK, ROLE, CITY, COMENTS, LIKES, REPOSTS, CHOOSE_TYPE = range(1, 10)
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     cursor = connection.cursor()
@@ -45,7 +54,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
                          (id SERIAL PRIMARY KEY,
                           linkedURL VARCHAR(100),
                           city VARCHAR(50),
-                          time_zone VARCHAR(10),
+                          time_zone VARCHAR(100),
                           role VARCHAR(200),
                           status INTEGER DEFAULT 0,
                           engage_rate INTEGER DEFAULT 1);'''
@@ -63,12 +72,19 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 async def midle_option(update: Update, context: ContextTypes.DEFAULT_TYPE):
-
-    await context.bot.send_message(
-        chat_id=update.effective_chat.id,
-        text="Напишите пожалуйста вашу ссылку на linkedin"
-        )
-    return REGISTRATION_INFO
+    cursor = connection.cursor()
+    user_id = update.effective_user.id
+    select_query = '''SELECT linkedURL FROM registr WHERE id = %s;'''
+    cursor.execute(select_query, (user_id,))
+    rows = cursor.fetchall()
+    if rows:
+        return CHOOSE_OPTION
+    else:
+        await context.bot.send_message(
+            chat_id=update.effective_chat.id,
+            text="Напишите пожалуйста вашу ссылку на linkedin"
+            )
+        return REGISTRATION_INFO
 
 async def reg_info(update: Update, context: ContextTypes.DEFAULT_TYPE):
     cursor = connection.cursor()
@@ -115,9 +131,11 @@ async def time_zone(update: Update, context: ContextTypes.DEFAULT_TYPE):
     cursor = connection.cursor()
     select_query = '''SELECT city FROM registr WHERE id = %s;'''
     cursor.execute(select_query, (update.effective_user.id,))
-    city = cursor.fetchone()
-    geo = geopy.geocoders.Nominatim(user_agent="SuperMon_Bot")
-    location = geo.geocode(city)
+    city = cursor.fetchone()[0]
+    print(city)
+    geo = Nominatim(user_agent="SuperMon_Bot")
+    location = geo.geocode(city, language = 'ru')
+    print(location)
     if location is None:
         await context.bot.send_message(
             chat_id=update.effective_chat.id,
@@ -125,12 +143,15 @@ async def time_zone(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
         return CITY
     else:
-        tzw = tzwhere.tzwhere() 
-        timezone_str = tzw.tzNameAt(location.latitude,location.longitude) # получаем название часового пояса
+        lat, lon = location.latitude, location.longitude
+        tf = TimezoneFinder()
+        timezone_str = tf.timezone_at(lat=lat, lng=lon)
+        print(timezone_str)
         tz = pytz.timezone(timezone_str)
-        tz_info = datetime.datetime.now(tz=tz).strftime("%z") # получаем смещение часового пояса
-        tz_info = tz_info[0:3]+":"+tz_info[3:] # приводим к формату ±ЧЧ:ММ
-        insert_query = '''UPDATE registr SET time_zone WHERE id = %s;'''
+        tz_info = datetime.datetime.now(tz=tz).strftime("%z")
+        tz_info = tz_info[0:3] + ":" + tz_info[3:] # приводим к формату ±ЧЧ:ММ
+        print(tz_info)
+        insert_query = '''UPDATE registr SET time_zone = %s WHERE id = %s;'''
         new_user = (timezone_str)
         cursor.execute(insert_query, (new_user, update.effective_user.id,))
         connection.commit()
@@ -144,8 +165,7 @@ async def menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
         text="Выберите опцию",
         reply_markup=ReplyKeyboardMarkup(
             reply_keyboard,
-            resize_keyboard=True,
-            one_time_keyboard=True
+            resize_keyboard=True
         )
     )
     return CHOOSE_OPTION
@@ -164,7 +184,7 @@ async def choose_option(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
             return await menu(update, context)
         else:
-            return write_function(update, context)
+            return await write_function(update, context)
     elif update.effective_message.text == "Решать задачи":
         return await send_top5(update, context)
 async def write_function(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -204,7 +224,7 @@ async def add_task(update: Update, context: ContextTypes.DEFAULT_TYPE):
         status = cursor.fetchone()[0]
         status = int(status)
         status += 1
-        insert_query2 = '''UPDATE registr SET status = %s WHERE user_id = %s;'''
+        insert_query2 = '''UPDATE registr SET status = %s WHERE id = %s;'''
         new_task2 = (status)
         cursor.execute(insert_query2, (new_task2, update.effective_user.id,))
         connection.commit()
@@ -293,7 +313,7 @@ async def many_likes(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def many_coments(update: Update, context: ContextTypes.DEFAULT_TYPE):
     reply_keyback = [["Добавить задачу","Решать задачи"]]
     cursor = connection.cursor()
-    coments = int(update.effective_mesage.text)
+    coments = int(update.effective_message.text)
     task_id = context.user_data["task_id"]
     if coments <= 3 and coments > 0:
         insert_query = '''UPDATE add_task SET many = %s WHERE task_id = %s;'''
@@ -338,7 +358,7 @@ async def many_reposts(update: Update, context: ContextTypes.DEFAULT_TYPE):
     else:
         await context.bot.send_message(
             chat_id=update.effective_chat.id,
-            tetx="количество репотво не может привышать один за одно задание"
+            text="количество репотво не может привышать один за одно задание"
         )
         return await many_reposts_text(update, context)
 

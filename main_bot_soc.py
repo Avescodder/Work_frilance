@@ -92,8 +92,8 @@ async def midle_option(update: Update, context: ContextTypes.DEFAULT_TYPE):
     else:
         # cursor.execute("UPDATE registr SET engage_rate = %s WHERE id = %s", (0, update.effective_user.id,))
         # connection.commit()
-        return await menu(update, context)
-
+        # return await menu(update, context)
+        return REGISTRATION_INFO
 async def reg_info(update: Update, context: ContextTypes.DEFAULT_TYPE):
     cursor = connection.cursor()
     pattern = r'^https?://(www\.)?linkedin\.com/.*$'

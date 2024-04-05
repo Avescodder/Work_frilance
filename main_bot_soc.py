@@ -57,7 +57,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
                           time_zone VARCHAR(100),
                           role VARCHAR(200),
                           status INTEGER DEFAULT 0,
-                          engage_rate INTEGER DEFAULT 1);'''
+                          engage_rate INTEGER);'''
     cursor.execute(create_table_query)
     connection.commit()
     cursor.execute("INSERT INTO registr (id) VALUES (%s) ON CONFLICT (id) DO NOTHING", (update.effective_user.id,))
@@ -232,8 +232,7 @@ async def add_task(update: Update, context: ContextTypes.DEFAULT_TYPE):
                           rate_calc_f INTEGER,
                           rate_calc_s INTEGER,
                           user_id INTEGER,
-                          CONSTRAINT fk_user_id FOREIGN KEY (user_id) REFERENCES registr(id),
-                          CONSTRAINT unique_rating_new UNIQUE (rating) 
+                          CONSTRAINT fk_user_id FOREIGN KEY (user_id) REFERENCES registr(id) 
                           );'''
     cursor.execute(create_table_query)
     connection.commit()

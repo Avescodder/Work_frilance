@@ -47,6 +47,7 @@ logging.getLogger("httpx").setLevel(logging.WARNING)
 logger = logging.getLogger(__name__)
 
 CHOOSE_OPTION, REGISTRATION_INFO, ADD_TASK, ROLE, CITY, COMENTS, LIKES, REPOSTS, CHOOSE_TYPE = range(1, 10)
+SKILLS, FOLLOWS, ERROR = range(1,4)
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     cursor = connection.cursor()
@@ -92,8 +93,12 @@ async def midle_option(update: Update, context: ContextTypes.DEFAULT_TYPE):
     else:
         # cursor.execute("UPDATE registr SET engage_rate = %s WHERE id = %s", (0, update.effective_user.id,))
         # connection.commit()
-        # return await menu(update, context)
-        return REGISTRATION_INFO
+        return await menu(update, context)
+        # await context.bot.send_message(
+        #     chat_id=update.effective_chat.id,
+        #     text="Напишите пожалуйста вашу ссылку на Linkedin"
+        #     )
+        # return REGISTRATION_INFO
 async def reg_info(update: Update, context: ContextTypes.DEFAULT_TYPE):
     cursor = connection.cursor()
     pattern = r'^https?://(www\.)?linkedin\.com/.*$'
@@ -220,7 +225,7 @@ async def write_function(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
     return ADD_TASK
 async def add_task(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    reply_keyboard = [["Поставить лайки","Написать комментарии","Сделать репост"]]
+    reply_keyboard = [["Поставить лайки","Подписаться","Сделать репост"],["Написать комментарии","Одобрение навыка"]]
     cursor = connection.cursor()
     create_table_query = '''CREATE TABLE IF NOT EXISTS add_task
                          (task_id UUID PRIMARY KEY,
@@ -280,7 +285,19 @@ async def add_task(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def choose_type(update: Update, context: ContextTypes.DEFAULT_TYPE):
     cursor = connection.cursor()
     task_id = context.user_data["task_id"]
-    if update.effective_message.text == "Поставить лайки":
+    if update.effective_message.text == "Подписаться":
+        insert_query0 = '''UPDATE add_task SET task_type = %s WHERE task_id = %s;'''
+        new_task0 = ("Follow")
+        cursor.execute(insert_query0, (new_task0, task_id))
+        connection.commit()
+        return await many_follows_text(update, context)
+    elif update.effective_message.text == "Одобрение навыка":
+        insert_query5 = '''UPDATE add_task SET task_type = %s WHERE task_id %s;'''
+        new = ("endorse_skill")
+        cursor.execute(insert_query5, (new, task_id))
+        connection.commit()
+        return await many_skills_text(update, context)
+    elif update.effective_message.text == "Поставить лайки":
         insert_query1 = '''UPDATE add_task SET task_type = %s WHERE task_id = %s;'''
         new_task = ("like")
         cursor.execute(insert_query1, (new_task, task_id))
@@ -317,23 +334,35 @@ async def many_reposts_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
         text="Напишите пожалуйста сколько репостов нужно сделать."
     )
     return REPOSTS
-async def many_likes(update: Update, context: ContextTypes.DEFAULT_TYPE):
+async def many_follows_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await context.bot.send_message(
+        chat_id=update.effective_chat.id,
+        text="Напишите пожалуйста сколько подписчиков хотите получить."
+    )
+    return FOLLOWS
+async def many_skills_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await context.bot.send_message(
+        chat_id=update.effective_chat.id,
+        text="Напишите пожалуйста сколько одобрений хотите получить."
+    )
+    return SKILLS
+async def many_skills(update: Update, context: ContextTypes.DEFAULT_TYPE):
     reply_keyback = [["Добавить задачу","Решать задачи"]]
     cursor = connection.cursor()
-    likes = int(update.effective_message.text)
+    endorse = int(update.effective_message.text)
     task_id = context.user_data["task_id"]
-    if likes <= 5 and likes > 0:
+    if endorse == 1:
         insert_query = '''UPDATE add_task SET many = %s WHERE task_id = %s;'''
-        new_task = (likes)
+        new_task = (endorse)
         cursor.execute(insert_query, (new_task, task_id))
         connection.commit()
         insert_query2 = '''UPDATE add_task SET rate_calc_f = %s WHERE task_id = %s;'''
-        new_rate = 100
+        new_rate = 160
         new_rate = (new_rate)
         cursor.execute(insert_query2, (new_rate, task_id))
         connection.commit()
         insert_query3 = '''UPDATE add_task SET rate_calc_s = %s WHERE task_id = %s;'''
-        new_rate2 = 5 / likes
+        new_rate2 = 1 / endorse
         new = (new_rate2)
         cursor.execute(insert_query3, (new, task_id))
         connection.commit()
@@ -350,32 +379,32 @@ async def many_likes(update: Update, context: ContextTypes.DEFAULT_TYPE):
     else:
         await context.bot.send_message(
             chat_id=update.effective_chat.id,
-            text="Количество лайков не может привышать пяти на одно задание."
+            text="Количество одобрений не может привышать одного на одно задание."
         )
-        return await many_likes_text(update, context)
-async def many_coments(update: Update, context: ContextTypes.DEFAULT_TYPE):
+        return await many_skills_text(update, context)
+async def many_follows(update: Update, context: ContextTypes.DEFAULT_TYPE):
     reply_keyback = [["Добавить задачу","Решать задачи"]]
     cursor = connection.cursor()
-    coments = int(update.effective_message.text)
+    follow = int(update.effective_message.text)
     task_id = context.user_data["task_id"]
-    if coments <= 3 and coments > 0:
+    if follow <= 5 and follow > 0:
         insert_query = '''UPDATE add_task SET many = %s WHERE task_id = %s;'''
-        new_task = (coments)
+        new_task = (follow)
         cursor.execute(insert_query, (new_task, task_id))
         connection.commit()
         insert_query2 = '''UPDATE add_task SET rate_calc_f = %s WHERE task_id = %s;'''
-        new_rate = 160
+        new_rate = 170
         new_rate = (new_rate)
         cursor.execute(insert_query2, (new_rate, task_id))
         connection.commit()
         insert_query3 = '''UPDATE add_task SET rate_calc_s = %s WHERE task_id = %s;'''
-        new_rate2 = 3 / coments
+        new_rate2 = 5 / follow
         new = (new_rate2)
         cursor.execute(insert_query3, (new, task_id))
         connection.commit()
         await context.bot.send_message(
             chat_id=update.effective_chat.id,
-            text="Отлично, вы создали задачу. Что предпочитаете делать далее?",
+            text="Отлично, вы добавили задачу. Что предпочитаете делать далее?",
             reply_markup=ReplyKeyboardMarkup(
                 reply_keyback, 
                 resize_keyboard=True,
@@ -386,17 +415,53 @@ async def many_coments(update: Update, context: ContextTypes.DEFAULT_TYPE):
     else:
         await context.bot.send_message(
             chat_id=update.effective_chat.id,
-            text="Количество комментариев не может быть больше трёх в одном заданиие."
+            text="Количество подписок не может привышать пяти на одно задание."
         )
-        return await many_coments_text(update, context)
-async def many_reposts(update: Update, context: ContextTypes.DEFAULT_TYPE):
+        return await many_follows_text(update, context)
+async def many_likes(update: Update, context: ContextTypes.DEFAULT_TYPE):
     reply_keyback = [["Добавить задачу","Решать задачи"]]
     cursor = connection.cursor()
-    reposts = int(update.effective_message.text)
+    likes = int(update.effective_message.text)
     task_id = context.user_data["task_id"]
-    if reposts == 1:
+    if likes <= 10 and likes > 0:
         insert_query = '''UPDATE add_task SET many = %s WHERE task_id = %s;'''
-        new_task = (reposts)
+        new_task = (likes)
+        cursor.execute(insert_query, (new_task, task_id))
+        connection.commit()
+        insert_query2 = '''UPDATE add_task SET rate_calc_f = %s WHERE task_id = %s;'''
+        new_rate = 100
+        new_rate = (new_rate)
+        cursor.execute(insert_query2, (new_rate, task_id))
+        connection.commit()
+        insert_query3 = '''UPDATE add_task SET rate_calc_s = %s WHERE task_id = %s;'''
+        new_rate2 = 10 / likes
+        new = (new_rate2)
+        cursor.execute(insert_query3, (new, task_id))
+        connection.commit()
+        await context.bot.send_message(
+            chat_id=update.effective_chat.id,
+            text="Отлично, вы добавили задачу. Что предпочитаете делать далее?",
+            reply_markup=ReplyKeyboardMarkup(
+                reply_keyback, 
+                resize_keyboard=True,
+                one_time_keyboard=True
+            )
+        )
+        return CHOOSE_OPTION
+    else:
+        await context.bot.send_message(
+            chat_id=update.effective_chat.id,
+            text="Количество лайков не может привышать десяти на одно задание."
+        )
+        return await many_likes_text(update, context)
+async def many_coments(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    reply_keyback = [["Добавить задачу","Решать задачи"]]
+    cursor = connection.cursor()
+    coments = int(update.effective_message.text)
+    task_id = context.user_data["task_id"]
+    if coments <= 2 and coments > 0:
+        insert_query = '''UPDATE add_task SET many = %s WHERE task_id = %s;'''
+        new_task = (coments)
         cursor.execute(insert_query, (new_task, task_id))
         connection.commit()
         insert_query2 = '''UPDATE add_task SET rate_calc_f = %s WHERE task_id = %s;'''
@@ -405,7 +470,7 @@ async def many_reposts(update: Update, context: ContextTypes.DEFAULT_TYPE):
         cursor.execute(insert_query2, (new_rate, task_id))
         connection.commit()
         insert_query3 = '''UPDATE add_task SET rate_calc_s = %s WHERE task_id = %s;'''
-        new_rate2 = 0
+        new_rate2 = 2 / coments
         new = (new_rate2)
         cursor.execute(insert_query3, (new, task_id))
         connection.commit()
@@ -422,7 +487,43 @@ async def many_reposts(update: Update, context: ContextTypes.DEFAULT_TYPE):
     else:
         await context.bot.send_message(
             chat_id=update.effective_chat.id,
-            text="Количество репостов не должно быть больше одного на задание."
+            text="Количество комментариев не может быть больше двух в одном заданиие."
+        )
+        return await many_coments_text(update, context)
+async def many_reposts(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    reply_keyback = [["Добавить задачу","Решать задачи"]]
+    cursor = connection.cursor()
+    reposts = int(update.effective_message.text)
+    task_id = context.user_data["task_id"]
+    if reposts <= 3 or reposts > 0:
+        insert_query = '''UPDATE add_task SET many = %s WHERE task_id = %s;'''
+        new_task = (reposts)
+        cursor.execute(insert_query, (new_task, task_id))
+        connection.commit()
+        insert_query2 = '''UPDATE add_task SET rate_calc_f = %s WHERE task_id = %s;'''
+        new_rate = 130
+        new_rate = (new_rate)
+        cursor.execute(insert_query2, (new_rate, task_id))
+        connection.commit()
+        insert_query3 = '''UPDATE add_task SET rate_calc_s = %s WHERE task_id = %s;'''
+        new_rate2 = 3 / reposts
+        new = (new_rate2)
+        cursor.execute(insert_query3, (new, task_id))
+        connection.commit()
+        await context.bot.send_message(
+            chat_id=update.effective_chat.id,
+            text="Отлично, вы создали задачу. Что предпочитаете делать далее?",
+            reply_markup=ReplyKeyboardMarkup(
+                reply_keyback, 
+                resize_keyboard=True,
+                one_time_keyboard=True
+            )
+        )
+        return CHOOSE_OPTION
+    else:
+        await context.bot.send_message(
+            chat_id=update.effective_chat.id,
+            text="Количество репостов не должно быть больше трёх на задание."
         )
         return await many_reposts_text(update, context)
 
@@ -478,12 +579,14 @@ async def send_top5(update: Update, context: ContextTypes.DEFAULT_TYPE):
         WHERE task_user_id = %s'''
         cursor.execute(update_query, (task_type, linked_url, many, rating, user_id, rank, task_id, update.effective_user.id))
         connection.commit()
+        insert_query = '''UPDATE do_task SET start_time = CURRENT_TIMESTAMP WHERE do_task_id = %s;'''
+        cursor.execute(insert_query, (task_id,))
+        connection.commit()
         await context.bot.send_message(
             chat_id=update.effective_chat.id,
             text=f"""
 Ссылка на задачу в LinkedIn: {linked_url}
 Тип задания: {task_type}
-Желаемое количество: {many}
             """
         )
     await context.bot.send_message(
@@ -592,6 +695,8 @@ def main():
                 CITY: [MessageHandler(filters.TEXT, city)],
                 ROLE: [MessageHandler(filters.TEXT, role)],
                 REGISTRATION_INFO: [MessageHandler(filters.TEXT, reg_info)],
+                # SKILLS: [MessageHandler(filters.TEXT, many_skills)],
+                FOLLOWS: [MessageHandler(filters.TEXT, many_follows)]
 
                 },
         fallbacks=[],

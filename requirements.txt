@@ -1,4 +1,10 @@
 python-telegram-bot==21.0.1
 aiosqlite
-
-      
+datetime
+psycopg2
+re
+pytz
+uuid
+geopy.geocoders
+timezonefinder
+schedule

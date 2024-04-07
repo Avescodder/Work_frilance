@@ -1,27 +1,24 @@
 import logging
-from telegram import Update, LabeledPrice
+from telegram import Update
 from telegram.ext import (
     ApplicationBuilder,
     ContextTypes,
     CommandHandler,
     MessageHandler,
     filters,
-    ConversationHandler,
-    PreCheckoutQueryHandler
+    ConversationHandler
 )
 from telegram import ReplyKeyboardMarkup
 import datetime
-import asyncio
 import psycopg2
 import re
-import geopy
 import pytz
-from tzwhere import tzwhere
 import uuid
 from geopy.geocoders import Nominatim
 from timezonefinder import TimezoneFinder
+import schedule
 
-dbname = "postgres"
+dbname = "first_bot"
 user = "postgres"
 password = "Vm205912"
 host = "localhost" 
@@ -46,14 +43,14 @@ logging.getLogger("httpx").setLevel(logging.WARNING)
 
 logger = logging.getLogger(__name__)
 
-CHOOSE_OPTION, REGISTRATION_INFO, ADD_TASK, ROLE, CITY, COMENTS, LIKES, REPOSTS, CHOOSE_TYPE = range(1, 10)
-SKILLS, FOLLOWS, ERROR = range(1,4)
+(CHOOSE_OPTION, REGISTRATION_INFO, ADD_TASK, ROLE, CITY, COMENTS, LIKES, REPOSTS, CHOOSE_TYPE, SKILLS, FOLLOWS, ERROR) = range(12)
+
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     cursor = connection.cursor()
     create_table_query = '''CREATE TABLE IF NOT EXISTS registr
                          (id SERIAL PRIMARY KEY,
-                          linkedURL VARCHAR(100),
+                          linkedURL VARCHAR(500),
                           city VARCHAR(50),
                           time_zone VARCHAR(100),
                           role VARCHAR(200),
@@ -84,21 +81,16 @@ async def midle_option(update: Update, context: ContextTypes.DEFAULT_TYPE):
     cursor.execute(select_query, (user_id,))
     rows = cursor.fetchall()
     print(rows)
-    if rows == None:
+    if rows and rows[0][0] is None:
         await context.bot.send_message(
             chat_id=update.effective_chat.id,
             text="Напишите пожалуйста вашу ссылку на Linkedin"
             )
         return REGISTRATION_INFO
     else:
+        return await menu(update, context)
         # cursor.execute("UPDATE registr SET engage_rate = %s WHERE id = %s", (0, update.effective_user.id,))
         # connection.commit()
-        return await menu(update, context)
-        # await context.bot.send_message(
-        #     chat_id=update.effective_chat.id,
-        #     text="Напишите пожалуйста вашу ссылку на Linkedin"
-        #     )
-        # return REGISTRATION_INFO
 async def reg_info(update: Update, context: ContextTypes.DEFAULT_TYPE):
     cursor = connection.cursor()
     pattern = r'^https?://(www\.)?linkedin\.com/.*$'
@@ -190,7 +182,7 @@ async def choose_option(update: Update, context: ContextTypes.DEFAULT_TYPE):
         cursor.execute('''SELECT status FROM registr WHERE id = %s;''', (update.effective_user.id,))
         status = cursor.fetchone()[0]
         status = int(status)
-        if status == 100:
+        if status == 5:
             await context.bot.send_message(
                 chat_id=update.effective_chat.id,
                 text="На сегодня вы больше не можете создавать задачи, это возможность вновь разблокируется через 24 часа"
@@ -230,16 +222,14 @@ async def add_task(update: Update, context: ContextTypes.DEFAULT_TYPE):
     create_table_query = '''CREATE TABLE IF NOT EXISTS add_task
                          (task_id UUID PRIMARY KEY,
                           task_type VARCHAR(100),
-                          linked_url VARCHAR(300),
+                          linked_url VARCHAR(500),
                           many INTEGER,
                           much INTEGER,
                           rating INTEGER,
                           rate_calc_f INTEGER,
                           rate_calc_s INTEGER,
                           user_id INTEGER,
-                          CONSTRAINT fk_user_id FOREIGN KEY (user_id) REFERENCES registr(id),
-                          CONSTRAINT unique_rating_new UNIQUE (rating) 
-                          );'''
+                          CONSTRAINT fk_user_id FOREIGN KEY (user_id) REFERENCES registr(id));'''
     cursor.execute(create_table_query)
     connection.commit()
     pattern = r'^https?://(www\.)?linkedin\.com/.*$'
@@ -292,7 +282,7 @@ async def choose_type(update: Update, context: ContextTypes.DEFAULT_TYPE):
         connection.commit()
         return await many_follows_text(update, context)
     elif update.effective_message.text == "Одобрение навыка":
-        insert_query5 = '''UPDATE add_task SET task_type = %s WHERE task_id %s;'''
+        insert_query5 = '''UPDATE add_task SET task_type = %s WHERE task_id = %s;'''
         new = ("endorse_skill")
         cursor.execute(insert_query5, (new, task_id))
         connection.commit()
@@ -535,13 +525,15 @@ async def send_top5(update: Update, context: ContextTypes.DEFAULT_TYPE):
     create_table_query = '''CREATE TABLE IF NOT EXISTS do_task
                          (do_task_id UUID PRIMARY KEY,
                           do_task_type VARCHAR(100),
-                          do_linked_url VARCHAR(300),
+                          do_linked_url VARCHAR(500),
                           do_many INTEGER,
                           task_user_id INTEGER,
                           do_rating INTEGER,
                           do_status INTEGER DEFAULT 0,
                           rate_calc_f INTEGER,
                           rate_calc_s INTEGER,
+                          start_time TIMESTAMP,
+                          first_user_id INTEGER,
                           CONSTRAINT fk_user_id FOREIGN KEY (task_user_id) REFERENCES registr(id));'''
     cursor.execute(create_table_query)
     connection.commit()
@@ -551,8 +543,9 @@ async def send_top5(update: Update, context: ContextTypes.DEFAULT_TYPE):
         text="Сейчас вы получите пять задач для выполнения, после выполнения ваш рейтинг вырастет"
     )
     cursor.execute('''
-            SELECT task_id, task_type, linked_url, many, rating, user_id, rate_calc_f
+            SELECT task_id, task_type, linked_url, many, rating, user_id, rate_calc_f, rate_calc_s
             FROM add_task
+            WHERE many > 0
             ORDER BY rating DESC
             LIMIT 5;
         ''')
@@ -560,28 +553,35 @@ async def send_top5(update: Update, context: ContextTypes.DEFAULT_TYPE):
     top_tasks = cursor.fetchall()
     print(top_tasks)
 
-    total_rate = 50
-    # sum(rate[6] for rate in top_tasks)
-    total_rate2 = 20
-    # sum(rate[7] for rate in top_tasks)
+    
+    total_rate = sum(rate[6] for rate in top_tasks)
+    total_rate2 = sum(rate[7] for rate in top_tasks)
     revoke_coefficient = 1.1
     rank = (1 * total_rate * total_rate2) * revoke_coefficient
-    for task_id, task_type, linked_url, many, rating, user_id, rate_calc_f in top_tasks:
+    print(rank)
+    for task_id, task_type, linked_url, many, rating, user_id, rate_calc_f, rate_calc_s in top_tasks:
+        insert = '''INSERT INTO do_task (do_task_id, task_user_id) VALUES (%s, %s);'''
+        cursor.execute(insert, (task_id, update.effective_user.id))
+        connection.commit()
+        print(task_id)
         update_query = '''
         UPDATE do_task 
         SET do_task_type = %s,
             do_linked_url = %s,
             do_many = %s,
             do_rating = %s,
-            task_user_id = %s,
             rate_calc_f = %s,
-            do_task_id = %s
+            first_user_id = %s
         WHERE task_user_id = %s'''
-        cursor.execute(update_query, (task_type, linked_url, many, rating, user_id, rank, task_id, update.effective_user.id))
+        cursor.execute(update_query, (task_type, linked_url, many, rating, rank, user_id, update.effective_user.id))
         connection.commit()
         insert_query = '''UPDATE do_task SET start_time = CURRENT_TIMESTAMP WHERE do_task_id = %s;'''
         cursor.execute(insert_query, (task_id,))
         connection.commit()
+        select = '''SELECT task_user_id FROM do_task;'''
+        cursor.execute(select)
+        rex = cursor.fetchall()
+        print(rex)
         await context.bot.send_message(
             chat_id=update.effective_chat.id,
             text=f"""
@@ -611,39 +611,48 @@ async def finishing_task(update: Update, context: ContextTypes.DEFAULT_TYPE):
             one_time_keyboard=True
         )
     )
-    time_delta = datetime.timedelta(hours=1)
-    context.job_queue.run_once(chek_chek, time_delta, chat_id=update.effective_chat.id, data=Update)
+    time_delta = datetime.timedelta(seconds=20)
+    context.job_queue.run_once(chek_chek, time_delta, chat_id=update.effective_chat.id, data=update)
     return CHOOSE_OPTION
 
 async def chek_chek(context: ContextTypes.DEFAULT_TYPE):
     cursor = connection.cursor()
     job = context.job
-    update = job.data
-    select_query = '''SELECT do_status FROM do_task WHERE fk_user_id = %s;'''
-    cursor.execute(select_query, (update.effective_user.id,))
+    select_query = '''SELECT do_status FROM do_task WHERE task_user_id = %s;'''
+    cursor.execute(select_query, (job.data.effective_user.id,))
     status = cursor.fetchone()[0]
     status = int(status)
     if status == 1:
-        select_query2 = '''SELECT rate_calc_f FROM do_task WHERE fk_user_id = %s;'''
-        cursor.execute(select_query2, (update.effective_user.id,))
-        user_data = cursor.fetchone()[0]
-        user_data = (user_data)
-        insert_query = '''UPDATE registr SET engage_rate = %s WHERE id = %s;'''
-        cursor.execute(insert_query, (user_data, update.effective_user.id,))
+        cursor.execute(f'''
+            SELECT rate_calc_f, do_many, do_task_id FROM do_task WHERE task_user_id = {job.data.effective_user.id} ORDER BY start_time DESC LIMIT 5;
+        ''')
         
+        for rate in cursor.fetchall():
+            user_rate = rate[0] 
+            user_many = rate[1]
+            task_id = rate[2]
+            user_many -= 1
+            insert_query2 = '''UPDATE add_task SET many = %s WHERE task_id = %s;'''
+            cursor.execute(insert_query2, (user_many, task_id,))
+            connection.commit()
+            insert_query = '''UPDATE registr SET engage_rate = %s WHERE id = %s;'''
+            cursor.execute(insert_query, (user_rate, job.data.effective_user.id,))
+            connection.commit()
+
     elif status == 0:
-        return await pull_back(update, context)
+        return await pull_back(job.data, context)
 
 async def pull_back(update: Update, context: ContextTypes.DEFAULT_TYPE):
     cursor = connection.cursor()
-    cursor.execute('''
-        SELECT do_task_id, do_task_type, do_linked_url, do_many, task_user_id
+    cursor.execute(f'''
+        SELECT do_task_id, do_task_type, do_linked_url, do_many, first_user_id
         FROM do_task
-        WHERE now() - start_time >= INTERVAL '1 hour';
+        WHERE now() - start_time >= INTERVAL '20 seconds' 
+        AND task_user_id = {update.effective_user.id};
     ''')
     unfinished_tasks = cursor.fetchall()
 
-    for do_task_id, do_task_type, do_linked_url, do_many, task_user_id in unfinished_tasks: #не аквтиные переменные висят тут на всякий случай, для расширения кода в будующем
+    for do_task_id, do_task_type, do_linked_url, do_many, first_user_id in unfinished_tasks: #не аквтиные переменные висят тут на всякий случай, для расширения кода в будующем
         # Возвращаем задачу в общий пул
         cursor.execute('''
             DELETE FROM do_task WHERE do_task_id = %s;
@@ -663,7 +672,7 @@ async def pull_back(update: Update, context: ContextTypes.DEFAULT_TYPE):
             UPDATE registr
             SET engage_rate = engage_rate * 1.1
             WHERE id = %s;
-        ''', (task_user_id,))
+        ''', (first_user_id,))
         connection.commit()
 
     # Возвращаем сообщение пользователю о возврате задач в пул
@@ -677,6 +686,12 @@ async def pull_back(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     return await menu(update, context)
 
+async def clear_task_limit():
+    print(2)
+    user_list = cursor.execute('SELECT id FROM registr WHERE status > 0').fetchall()
+    user_list = [x[0] for x in user_list]
+    cursor.execute(f'UPDATE registr SET status = 0 WHERE id in user_list')
+    connection.commit()
 
 def main():
     application = (
@@ -695,13 +710,15 @@ def main():
                 CITY: [MessageHandler(filters.TEXT, city)],
                 ROLE: [MessageHandler(filters.TEXT, role)],
                 REGISTRATION_INFO: [MessageHandler(filters.TEXT, reg_info)],
-                # SKILLS: [MessageHandler(filters.TEXT, many_skills)],
+                SKILLS: [MessageHandler(filters.TEXT, many_skills)],
                 FOLLOWS: [MessageHandler(filters.TEXT, many_follows)]
 
                 },
         fallbacks=[],
     )
-
+    # schedule.every().day.at('14:13', tz=pytz.utc).do(clear_task_limit)
+    schedule.every().day.at("15:40").do(clear_task_limit)
+    print(1)
 
     application.add_handler(conv_handler)
 
@@ -709,4 +726,6 @@ def main():
 
 
 if __name__ == "__main__":
+    schedule.run_pending()
     main()
+    

@@ -64,11 +64,12 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await context.bot.send_message(
         chat_id=update.effective_chat.id,
         text="""
-Приветствуем вас в нашем боте,
-тут будут правила и другая полезная информация. 
-Чтобы начать пользоваться ботом нужно зарегистрироваться,
-для этого вам потребуется ваша ссылка linkedin,
- потом просто выполняйте все по инструкциям бота.""",
+Welcome to the LinkedIn co-boosting service. Our community is built on the contribute-to-get principle.
+This means that you need to complete tasks from other participants in order for your tasks to be completed.
+The higher your ratio of completed tasks to assigned tasks, the higher your rating and the greater the chance of your task being accomplished.
+Task completion is based on mutual trust. We believe that by marking a task as completed, you are telling the truth.
+We perform random checks on task completion. Deception will result in a lifetime ban. If you agree with these principles, simply register with the bot by following the instructions.
+Good luck with enhancing your LinkedIn profile.""",
         
     )
     return await midle_option(update, context)
@@ -81,11 +82,10 @@ async def midle_option(update: Update, context: ContextTypes.DEFAULT_TYPE):
     select_query = '''SELECT linkedURL FROM registr WHERE id = %s;'''
     cursor.execute(select_query, (user_id,))
     rows = cursor.fetchall()
-    print(rows)
     if rows and rows[0][0] is None:
         await context.bot.send_message(
             chat_id=update.effective_chat.id,
-            text="Напишите пожалуйста вашу ссылку на Linkedin"
+            text="Insert your LinkedIn profile URL. It sholud be like this one https://www.linkedin.com/in/leonidgladilin/"
             )
         return REGISTRATION_INFO
     else:
@@ -101,13 +101,13 @@ async def reg_info(update: Update, context: ContextTypes.DEFAULT_TYPE):
         connection.commit()
         await context.bot.send_message(
             chat_id=update.effective_chat.id,
-            text="""Напишите пожалуйста вашу роль, тут нужно будет написать объяснение что за роль, даже честно говоря не очень понял."""
+            text="""Name your Profession (SEO specialist, PPC specialist, Head of e-commerce, etc)"""
             )
         return ROLE
     else:
         await context.bot.send_message(
             chat_id=update.effective_chat.id,
-            text="Вы ввели не корректную ссылку, проверьте ссылку и попробуйте еще раз."
+            text="You have entered the incorrect URL. Make sure that you paste full LinkedIn URL from your browser"
         )
         return await midle_option(update, context)
 async def city(update: Update, context:ContextTypes.DEFAULT_TYPE):
@@ -127,7 +127,7 @@ async def role(update: Update, context: ContextTypes.DEFAULT_TYPE):
     connection.commit()
     await context.bot.send_message(
         chat_id=update.effective_chat.id,
-        text="Введите пожалуйста ваш город, по нему мы определим ваш часовой пояс, для удобства пользования ботом."
+        text="Enter your city name. If we can't match the city, please enter your country's capital name. It helps us not to notify you at night."
     )
     return CITY
     
@@ -136,25 +136,21 @@ async def time_zone(update: Update, context: ContextTypes.DEFAULT_TYPE):
     select_query = '''SELECT city FROM registr WHERE id = %s;'''
     cursor.execute(select_query, (update.effective_user.id,))
     city = cursor.fetchone()[0]
-    print(city)
     geo = Nominatim(user_agent="SuperMon_Bot")
-    location = geo.geocode(city, language = 'ru')
-    print(location)
+    location = geo.geocode(city, language = 'eng')
     if location is None:
         await context.bot.send_message(
             chat_id=update.effective_chat.id,
-            text="Не могу найти ваш временной пояс по данному городу, попробуйте другой, более крупный город, или напишите правильно"
+            text="I'm sorry, I can't find the city. Please, enter your country's capital name."
         )
         return CITY
     else:
         lat, lon = location.latitude, location.longitude
         tf = TimezoneFinder()
         timezone_str = tf.timezone_at(lat=lat, lng=lon)
-        print(timezone_str)
         tz = pytz.timezone(timezone_str)
         tz_info = datetime.datetime.now(tz=tz).strftime("%z")
         tz_info = tz_info[0:3] + ":" + tz_info[3:] # приводим к формату ±ЧЧ:ММ
-        print(tz_info)
         insert_query = '''UPDATE registr SET time_zone = %s WHERE id = %s;'''
         new_user = (timezone_str)
         cursor.execute(insert_query, (new_user, update.effective_user.id,))
@@ -163,10 +159,10 @@ async def time_zone(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 async def menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    reply_keyboard = [["Добавить задачу","Решать задачи"]]
+    reply_keyboard = [["Add your task","Take other's tasks"]]
     await context.bot.send_message(
         chat_id=update.effective_chat.id,
-        text="Вы успешно зарегистрированы, теперь вы можете выполнять задания других пользователей или выставлять свои.",
+        text="You have successfully signed up. Now you can use the service. Good luck",
         reply_markup=ReplyKeyboardMarkup(
             reply_keyboard,
             resize_keyboard=True,
@@ -177,33 +173,33 @@ async def menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def choose_option(update: Update, context: ContextTypes.DEFAULT_TYPE):
     cursor = connection.cursor()
-    if update.effective_message.text == "Добавить задачу":
+    if update.effective_message.text == "Add your task":
         cursor.execute('''SELECT status FROM registr WHERE id = %s;''', (update.effective_user.id,))
         status = cursor.fetchone()[0]
         status = int(status)
         if status == 5:
             await context.bot.send_message(
                 chat_id=update.effective_chat.id,
-                text="На сегодня вы больше не можете создавать задачи, это возможность вновь разблокируется через 24 часа"
+                text="Your daily limit is over. You can add new tasks tomorrow. Thank you and have a lovely day."
             )
 
             return await menu(update, context)
         else:
             return await write_function(update, context)
-    elif update.effective_message.text == "Решать задачи":
+    elif update.effective_message.text == "Take other's tasks":
         return await send_top5(update, context)
-    elif update.effective_message.text == "Да, конечно":
+    elif update.effective_message.text == "Yes, sure":
         await context.bot.send_message(
             chat_id=update.effective_chat.id,
-            text="Отлично, можете приступать к выполнению задания!"
+            text="Great! You can do this tasks!"
         )
         return await finishing_task(update, context)
-    elif update.effective_message.text == "Нет, вернуться в меню":
+    elif update.effective_message.text == "No. Back to the menu":
         return await pull_back(update, context)
-    elif update.effective_message.text == "Задание выполнено":
+    elif update.effective_message.text == "I confirm that all tasks are completed":
         await context.bot.send_message(
             chat_id=update.effective_chat.id,
-            text="Отлично, вы выполнили задания, теперь вы вернётесь в главное меню. "
+            text="Great! You've completed all tasks. You can return back to the menu."
         )
         cursor.execute('''UPDATE do_task SET do_status = %s WHERE task_user_id = %s;''', ("1", update.effective_user.id,))
         connection.commit()
@@ -211,12 +207,12 @@ async def choose_option(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def write_function(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await context.bot.send_message(
         chat_id=update.effective_chat.id,
-        text="Напишите пожалуйста вашу ссылку на задание в LinkedIn."
+        text="Insert your task's LinkedIn URL."
     
     )
     return ADD_TASK
 async def add_task(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    reply_keyboard = [["Поставить лайки","Подписаться","Сделать репост"],["Написать комментарии","Одобрение навыка"]]
+    reply_keyboard = [["Like", "Follow","Repost"],["Comment","Endorse skill"]]
     cursor = connection.cursor()
     create_table_query = '''CREATE TABLE IF NOT EXISTS add_task
                          (task_id UUID PRIMARY KEY,
@@ -257,7 +253,7 @@ async def add_task(update: Update, context: ContextTypes.DEFAULT_TYPE):
         connection.commit()
         await context.bot.send_message(
             chat_id=update.effective_chat.id,
-            text="Пожалуйста выберите тип вашей задачи",
+            text="Please, choose task's type:",
             reply_markup=ReplyKeyboardMarkup(
                 reply_keyboard,
                 resize_keyboard=True,
@@ -268,37 +264,37 @@ async def add_task(update: Update, context: ContextTypes.DEFAULT_TYPE):
     else:
         await context.bot.send_message(
             chat_id=update.effective_chat.id,
-            text="Не правильная ссылка"
+            text="Incorrect URL. Please, make sure that you paste correct and full LinkedIn URL to your task"
         )
         return await write_function(update, context)
 async def choose_type(update: Update, context: ContextTypes.DEFAULT_TYPE):
     cursor = connection.cursor()
     task_id = context.user_data["task_id"]
-    if update.effective_message.text == "Подписаться":
+    if update.effective_message.text == "Follow":
         insert_query0 = '''UPDATE add_task SET task_type = %s WHERE task_id = %s;'''
         new_task0 = ("Follow")
         cursor.execute(insert_query0, (new_task0, task_id))
         connection.commit()
         return await many_follows_text(update, context)
-    elif update.effective_message.text == "Одобрение навыка":
+    elif update.effective_message.text == "Endorse skill":
         insert_query5 = '''UPDATE add_task SET task_type = %s WHERE task_id = %s;'''
         new = ("endorse_skill")
         cursor.execute(insert_query5, (new, task_id))
         connection.commit()
         return await many_skills_text(update, context)
-    elif update.effective_message.text == "Поставить лайки":
+    elif update.effective_message.text == "Like":
         insert_query1 = '''UPDATE add_task SET task_type = %s WHERE task_id = %s;'''
         new_task = ("like")
         cursor.execute(insert_query1, (new_task, task_id))
         connection.commit()
         return await many_likes_text(update, context)
-    elif update.effective_message.text == "Написать комментарии":
+    elif update.effective_message.text == "Comment":
         insert_query2 = '''UPDATE add_task SET task_type = %s WHERE task_id = %s;'''
         new_task_2 = ("coment")
         cursor.execute(insert_query2, (new_task_2, task_id))
         connection.commit()
         return await many_coments_text(update, context)
-    elif update.effective_message.text == "Сделать репост":
+    elif update.effective_message.text == "Repost":
         insert_query3 = '''UPDATE add_task SET task_type = %s WHERE task_id = %s;'''
         new_task_3 = ("repost")
         cursor.execute(insert_query3, (new_task_3, task_id))
@@ -308,35 +304,35 @@ async def choose_type(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def many_likes_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await context.bot.send_message(
         chat_id=update.effective_chat.id,
-        text="Напишите пожалуйста сколько лайков необходимо поставить."
+        text="How many likes do you need for the post? (10 is max)"
     )
     return LIKES
 async def many_coments_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await context.bot.send_message(
         chat_id=update.effective_chat.id,
-        text="Напишите пожалуйста сколько комментариев нужно написать."
+        text="How many comments do you need for the post? (2 is max)"
     )
     return COMENTS
 async def many_reposts_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await context.bot.send_message(
         chat_id=update.effective_chat.id,
-        text="Напишите пожалуйста сколько репостов нужно сделать."
+        text="How many reposts do you need for the post? (3 is max)"
     )
     return REPOSTS
 async def many_follows_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await context.bot.send_message(
         chat_id=update.effective_chat.id,
-        text="Напишите пожалуйста сколько подписчиков хотите получить."
+        text="How many follower do you need for your profile? (5 is max)"
     )
     return FOLLOWS
 async def many_skills_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await context.bot.send_message(
         chat_id=update.effective_chat.id,
-        text="Напишите пожалуйста сколько одобрений хотите получить."
+        text="How many endorses do you need to get? (1 is max)"
     )
     return SKILLS
 async def many_skills(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    reply_keyback = [["Добавить задачу","Решать задачи"]]
+    reply_keyback = [["Add your task","Take other's tasks"]]
     cursor = connection.cursor()
     endorse = int(update.effective_message.text)
     task_id = context.user_data["task_id"]
@@ -357,7 +353,7 @@ async def many_skills(update: Update, context: ContextTypes.DEFAULT_TYPE):
         connection.commit()
         await context.bot.send_message(
             chat_id=update.effective_chat.id,
-            text="Отлично, вы добавили задачу. Что предпочитаете делать далее?",
+            text="Great! You've added a new task. What do you prefer to do next?",
             reply_markup=ReplyKeyboardMarkup(
                 reply_keyback, 
                 resize_keyboard=True,
@@ -368,11 +364,11 @@ async def many_skills(update: Update, context: ContextTypes.DEFAULT_TYPE):
     else:
         await context.bot.send_message(
             chat_id=update.effective_chat.id,
-            text="Количество одобрений не может привышать одного на одно задание."
+            text="You can't enter more than one endorsement"
         )
         return await many_skills_text(update, context)
 async def many_follows(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    reply_keyback = [["Добавить задачу","Решать задачи"]]
+    reply_keyback = [["Add your task","Take other's tasks"]]
     cursor = connection.cursor()
     follow = int(update.effective_message.text)
     task_id = context.user_data["task_id"]
@@ -393,7 +389,7 @@ async def many_follows(update: Update, context: ContextTypes.DEFAULT_TYPE):
         connection.commit()
         await context.bot.send_message(
             chat_id=update.effective_chat.id,
-            text="Отлично, вы добавили задачу. Что предпочитаете делать далее?",
+            text="Great! You've added a new task. What do you prefer to do next?",
             reply_markup=ReplyKeyboardMarkup(
                 reply_keyback, 
                 resize_keyboard=True,
@@ -404,11 +400,11 @@ async def many_follows(update: Update, context: ContextTypes.DEFAULT_TYPE):
     else:
         await context.bot.send_message(
             chat_id=update.effective_chat.id,
-            text="Количество подписок не может привышать пяти на одно задание."
+            text="5 is a limit per the 'followers' task"
         )
         return await many_follows_text(update, context)
 async def many_likes(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    reply_keyback = [["Добавить задачу","Решать задачи"]]
+    reply_keyback = [["Add your task","Take other's tasks"]]
     cursor = connection.cursor()
     likes = int(update.effective_message.text)
     task_id = context.user_data["task_id"]
@@ -429,7 +425,7 @@ async def many_likes(update: Update, context: ContextTypes.DEFAULT_TYPE):
         connection.commit()
         await context.bot.send_message(
             chat_id=update.effective_chat.id,
-            text="Отлично, вы добавили задачу. Что предпочитаете делать далее?",
+            text="Great! You've added a new task. What do you prefer to do next?",
             reply_markup=ReplyKeyboardMarkup(
                 reply_keyback, 
                 resize_keyboard=True,
@@ -440,11 +436,11 @@ async def many_likes(update: Update, context: ContextTypes.DEFAULT_TYPE):
     else:
         await context.bot.send_message(
             chat_id=update.effective_chat.id,
-            text="Количество лайков не может привышать десяти на одно задание."
+            text="10 is a limit per the 'like' task"
         )
         return await many_likes_text(update, context)
 async def many_coments(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    reply_keyback = [["Добавить задачу","Решать задачи"]]
+    reply_keyback = [["Add your task","Take other's tasks"]]
     cursor = connection.cursor()
     coments = int(update.effective_message.text)
     task_id = context.user_data["task_id"]
@@ -465,7 +461,7 @@ async def many_coments(update: Update, context: ContextTypes.DEFAULT_TYPE):
         connection.commit()
         await context.bot.send_message(
             chat_id=update.effective_chat.id,
-            text="Отлично, вы создали задачу. Что предпочитаете делать далее?",
+            text="Great! You've added a new task. What do you prefer to do next?",
             reply_markup=ReplyKeyboardMarkup(
                 reply_keyback, 
                 resize_keyboard=True,
@@ -476,11 +472,11 @@ async def many_coments(update: Update, context: ContextTypes.DEFAULT_TYPE):
     else:
         await context.bot.send_message(
             chat_id=update.effective_chat.id,
-            text="Количество комментариев не может быть больше двух в одном заданиие."
+            text="2 is a limit per the 'comments' task"
         )
         return await many_coments_text(update, context)
 async def many_reposts(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    reply_keyback = [["Добавить задачу","Решать задачи"]]
+    reply_keyback = [["Add your task","Take other's tasks"]]
     cursor = connection.cursor()
     reposts = int(update.effective_message.text)
     task_id = context.user_data["task_id"]
@@ -501,7 +497,7 @@ async def many_reposts(update: Update, context: ContextTypes.DEFAULT_TYPE):
         connection.commit()
         await context.bot.send_message(
             chat_id=update.effective_chat.id,
-            text="Отлично, вы создали задачу. Что предпочитаете делать далее?",
+            text="Great! You've added a new task. What do you prefer to do next?",
             reply_markup=ReplyKeyboardMarkup(
                 reply_keyback, 
                 resize_keyboard=True,
@@ -512,7 +508,7 @@ async def many_reposts(update: Update, context: ContextTypes.DEFAULT_TYPE):
     else:
         await context.bot.send_message(
             chat_id=update.effective_chat.id,
-            text="Количество репостов не должно быть больше трёх на задание."
+            text="3 is a limit per the 'repost' task"
         )
         return await many_reposts_text(update, context)
 
@@ -526,7 +522,7 @@ async def send_top5(update: Update, context: ContextTypes.DEFAULT_TYPE):
                           do_task_type VARCHAR(100),
                           do_linked_url VARCHAR(500),
                           do_many INTEGER,
-                          task_user_id INTEGER,
+                          task_user_id BIGINT,
                           do_rating INTEGER,
                           do_status INTEGER DEFAULT 0,
                           rate_calc_f INTEGER,
@@ -536,10 +532,10 @@ async def send_top5(update: Update, context: ContextTypes.DEFAULT_TYPE):
                           CONSTRAINT fk_user_id FOREIGN KEY (task_user_id) REFERENCES registr(id));'''
     cursor.execute(create_table_query)
     connection.commit()
-    reply_keyboard = [["Да, конечно","Нет, вернуться в меню"]]
+    reply_keyboard = [["Yes, sure.", "No, return back to the menu"]]
     await context.bot.send_message(
         chat_id=update.effective_chat.id,
-        text="Сейчас вы получите пять задач для выполнения, после выполнения ваш рейтинг вырастет"
+        text="Now. you'll receive 5 tasks to complete in 15 minutes. Complete them and increase your rating"
     )
     cursor.execute('''
             SELECT task_id, task_type, linked_url, many, rating, user_id, rate_calc_f, rate_calc_s
@@ -575,13 +571,13 @@ async def send_top5(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await context.bot.send_message(
             chat_id=update.effective_chat.id,
             text=f"""
-Ссылка на задачу в LinkedIn: {linked_url}
-Тип задания: {task_type}
+The link to the task: {linked_url}
+You have to: {task_type}
             """
         )
     await context.bot.send_message(
         chat_id=update.effective_chat.id,
-        text="Готовы ли выполнить эти задани?",
+        text="Are you ready to complete these tasks?",
         reply_markup=ReplyKeyboardMarkup(
             reply_keyboard,
             resize_keyboard=True,
@@ -591,10 +587,10 @@ async def send_top5(update: Update, context: ContextTypes.DEFAULT_TYPE):
     return CHOOSE_OPTION
 
 async def finishing_task(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    keyboard = [["Задание выполнено"]]
+    keyboard = [["All tasks are completed"]]
     await context.bot.send_message(
         chat_id=update.effective_chat.id,
-        text="У вас есть час на выполнение заданий, если вы не выполните задания за указанное время, то будут наложены ограничения.",
+        text="You have 30 minutes to complete these tasks. If you skip them, your rating will be DECREASED.",
         reply_markup=ReplyKeyboardMarkup(
             keyboard,
             resize_keyboard=True,
@@ -664,7 +660,7 @@ async def pull_back(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     await context.bot.send_message(
         chat_id=update.effective_chat.id,
-        text="Ваши невыполненные задачи были возвращены в общий пул, на вас наложенно ограничение, больше сегодня задач вы взять не сможите"
+        text="You've missed your task submission. All tasks were revoked, You can't complete new tasks till tomorrow. Your rating decreased."
     )
     cursor = connection.cursor()
     cursor.execute("UPDATE add_task SET rating = r.engage_rate FROM registr r INNER JOIN add_task t ON r.id = t.user_id;")
@@ -685,7 +681,7 @@ async def send_everyone():
         user_local_time = utc_now + datetime.timedelta(hours=timezone_offset)
         if user_local_time.hour == 13 and user_local_time.minute == 0:
             bot = Bot(token="6833931155:AAH6tnqZbNcZs8FhnjmCSybO2hcHWYfpbKc")
-            bot.send_message(chat_id=user_id, text="Текст ежедневного сообщения")
+            bot.send_message(chat_id=user_id, text="Hi! How is your day? Let's add some tasks to boost your profile and take some taska to help community.")
         
 
 def main():

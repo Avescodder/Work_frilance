@@ -196,7 +196,7 @@ async def choose_option(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return await finishing_task(update, context)
     elif update.effective_message.text == "No. Back to the menu":
         return await pull_back(update, context)
-    elif update.effective_message.text == "I confirm that all tasks are completed":
+    elif update.effective_message.text == "All tasks are completed":
         await context.bot.send_message(
             chat_id=update.effective_chat.id,
             text="Great! You've completed all tasks. You can return back to the menu."

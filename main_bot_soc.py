@@ -19,7 +19,7 @@ from timezonefinder import TimezoneFinder
 import schedule
 import time
 
-dbname = "first_bot"
+dbname = "postgrs"
 user = "postgres"
 password = "Vm205912"
 host = "localhost" 

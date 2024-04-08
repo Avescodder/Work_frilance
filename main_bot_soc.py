@@ -188,7 +188,7 @@ async def choose_option(update: Update, context: ContextTypes.DEFAULT_TYPE):
             return await write_function(update, context)
     elif update.effective_message.text == "Take other's tasks":
         return await send_top5(update, context)
-    elif update.effective_message.text == "Yes, sure":
+    elif update.effective_message.text == "Yes, sure.":
         await context.bot.send_message(
             chat_id=update.effective_chat.id,
             text="Great! You can do this tasks!"

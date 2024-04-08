@@ -522,7 +522,7 @@ async def many_reposts(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def send_top5(update: Update, context: ContextTypes.DEFAULT_TYPE):
     cursor = connection.cursor()
     create_table_query = '''CREATE TABLE IF NOT EXISTS do_task
-                         (do_task_id UUID PRIMARY KEY,
+                         (do_task_id VARCHAR(500),
                           do_task_type VARCHAR(100),
                           do_linked_url VARCHAR(500),
                           do_many INTEGER,

@@ -51,7 +51,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     cursor = connection.cursor()
     create_table_query = '''CREATE TABLE IF NOT EXISTS registr
                          (id SERIAL PRIMARY KEY,
-                          linkedURL VARCHAR(500),
+                          linkedURL VARCHAR(2000),
                           city VARCHAR(50),
                           time_zone VARCHAR(100),
                           role VARCHAR(200),
@@ -217,7 +217,7 @@ async def add_task(update: Update, context: ContextTypes.DEFAULT_TYPE):
     create_table_query = '''CREATE TABLE IF NOT EXISTS add_task
                          (task_id UUID PRIMARY KEY,
                           task_type VARCHAR(100),
-                          linked_url VARCHAR(500),
+                          linked_url VARCHAR(2000),
                           many INTEGER,
                           much INTEGER,
                           rating INTEGER,
@@ -481,7 +481,7 @@ async def send_top5(update: Update, context: ContextTypes.DEFAULT_TYPE):
     create_table_query = '''CREATE TABLE IF NOT EXISTS do_task
                          (do_task_id VARCHAR(500),
                           do_task_type VARCHAR(100),
-                          do_linked_url VARCHAR(500),
+                          do_linked_url VARCHAR(2000),
                           do_many INTEGER,
                           task_user_id BIGINT,
                           do_rating INTEGER,

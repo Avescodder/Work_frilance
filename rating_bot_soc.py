@@ -362,7 +362,7 @@ async def many_skills(update: Update, context: ContextTypes.DEFAULT_TYPE):
         new = (new_rate2)
         cursor.execute(insert_query3, (new, task_id))
         connection.commit()
-        return await midle_option(update, context)
+        return await write_function(update, context)
     else:
         await context.bot.send_message(
             chat_id=update.effective_chat.id,
@@ -388,7 +388,7 @@ async def many_follows(update: Update, context: ContextTypes.DEFAULT_TYPE):
         new = (new_rate2)
         cursor.execute(insert_query3, (new, task_id))
         connection.commit()
-        return await midle_option(update, context)
+        return await write_function(update, context)
     else:
         await context.bot.send_message(
             chat_id=update.effective_chat.id,
@@ -414,7 +414,7 @@ async def many_likes(update: Update, context: ContextTypes.DEFAULT_TYPE):
         new = (new_rate2)
         cursor.execute(insert_query3, (new, task_id))
         connection.commit()
-        return await midle_option(update, context)
+        return await write_function(update, context)
     else:
         await context.bot.send_message(
             chat_id=update.effective_chat.id,
@@ -440,7 +440,7 @@ async def many_coments(update: Update, context: ContextTypes.DEFAULT_TYPE):
         new = (new_rate2)
         cursor.execute(insert_query3, (new, task_id))
         connection.commit()
-        return await midle_option(update, context)
+        return await write_function(update, context)
     else:
         await context.bot.send_message(
             chat_id=update.effective_chat.id,
@@ -466,7 +466,7 @@ async def many_reposts(update: Update, context: ContextTypes.DEFAULT_TYPE):
         new = (new_rate2)
         cursor.execute(insert_query3, (new, task_id))
         connection.commit()
-        return await midle_option(update, context)
+        return await write_function(update, context)
     else:
         await context.bot.send_message(
             chat_id=update.effective_chat.id,

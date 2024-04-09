@@ -499,10 +499,10 @@ async def send_top5(update: Update, context: ContextTypes.DEFAULT_TYPE):
         chat_id=update.effective_chat.id,
         text="Now. you'll receive 5 tasks to complete in 15 minutes. Complete them and increase your rating"
     )
-    cursor.execute('''
+    cursor.execute(f'''
             SELECT task_id, task_type, linked_url, many, rating, user_id, rate_calc_f, rate_calc_s
             FROM add_task
-            WHERE many > 0
+            WHERE many > 0 AND user_id != {update.effective_user.id}
             ORDER BY rating DESC
             LIMIT 5;
         ''')

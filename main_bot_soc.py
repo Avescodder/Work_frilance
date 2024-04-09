@@ -51,7 +51,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     cursor = connection.cursor()
     create_table_query = '''CREATE TABLE IF NOT EXISTS registr
                          (id SERIAL PRIMARY KEY,
-                          linkedURL VARCHAR(500),
+                          linkedURL VARCHAR(2000),
                           city VARCHAR(50),
                           time_zone VARCHAR(100),
                           role VARCHAR(200),
@@ -217,7 +217,7 @@ async def add_task(update: Update, context: ContextTypes.DEFAULT_TYPE):
     create_table_query = '''CREATE TABLE IF NOT EXISTS add_task
                          (task_id UUID PRIMARY KEY,
                           task_type VARCHAR(100),
-                          linked_url VARCHAR(500),
+                          linked_url VARCHAR(2000),
                           many INTEGER,
                           much INTEGER,
                           rating INTEGER,
@@ -229,6 +229,11 @@ async def add_task(update: Update, context: ContextTypes.DEFAULT_TYPE):
     connection.commit()
     cursor = connection.cursor()
     cursor.execute("UPDATE add_task SET rating = r.engage_rate FROM registr r INNER JOIN add_task t ON r.id = t.user_id;")
+    connection.commit()
+    task_id = str(uuid.uuid4())
+    context.user_data["task_id"] = task_id
+    insert_query = '''INSERT INTO add_task (task_id, user_id) VALUES (%s, %s);'''
+    cursor.execute(insert_query, (task_id, update.effective_user.id))
     connection.commit()
     await context.bot.send_message(
             chat_id=update.effective_chat.id,
@@ -244,12 +249,8 @@ async def linked_in(update: Update, context: ContextTypes.DEFAULT_TYPE):
     reply_keyback = [["Add your task","Take other's tasks"]]
     pattern = r'^https?://(www\.)?linkedin\.com/.*$'
     url = update.effective_message.text
+    task_id = context.user_data["task_id"]
     if re.match(pattern, url):
-        task_id = str(uuid.uuid4())
-        context.user_data["task_id"] = task_id
-        insert_query = '''INSERT INTO add_task (task_id, user_id) VALUES (%s, %s);'''
-        cursor.execute(insert_query, (task_id, update.effective_user.id))
-        connection.commit()
         insert_query = '''UPDATE add_task SET linked_url = %s WHERE task_id = %s;'''
         new_task = (url)
         cursor.execute(insert_query, (new_task, task_id,))
@@ -361,7 +362,7 @@ async def many_skills(update: Update, context: ContextTypes.DEFAULT_TYPE):
         new = (new_rate2)
         cursor.execute(insert_query3, (new, task_id))
         connection.commit()
-        return await midle_option(update, context)
+        return await write_function(update, context)
     else:
         await context.bot.send_message(
             chat_id=update.effective_chat.id,
@@ -387,7 +388,7 @@ async def many_follows(update: Update, context: ContextTypes.DEFAULT_TYPE):
         new = (new_rate2)
         cursor.execute(insert_query3, (new, task_id))
         connection.commit()
-        return await midle_option(update, context)
+        return await write_function(update, context)
     else:
         await context.bot.send_message(
             chat_id=update.effective_chat.id,
@@ -413,7 +414,7 @@ async def many_likes(update: Update, context: ContextTypes.DEFAULT_TYPE):
         new = (new_rate2)
         cursor.execute(insert_query3, (new, task_id))
         connection.commit()
-        return await midle_option(update, context)
+        return await write_function(update, context)
     else:
         await context.bot.send_message(
             chat_id=update.effective_chat.id,
@@ -439,7 +440,7 @@ async def many_coments(update: Update, context: ContextTypes.DEFAULT_TYPE):
         new = (new_rate2)
         cursor.execute(insert_query3, (new, task_id))
         connection.commit()
-        return await midle_option(update, context)
+        return await write_function(update, context)
     else:
         await context.bot.send_message(
             chat_id=update.effective_chat.id,
@@ -465,7 +466,7 @@ async def many_reposts(update: Update, context: ContextTypes.DEFAULT_TYPE):
         new = (new_rate2)
         cursor.execute(insert_query3, (new, task_id))
         connection.commit()
-        return await midle_option(update, context)
+        return await write_function(update, context)
     else:
         await context.bot.send_message(
             chat_id=update.effective_chat.id,
@@ -481,7 +482,7 @@ async def send_top5(update: Update, context: ContextTypes.DEFAULT_TYPE):
     create_table_query = '''CREATE TABLE IF NOT EXISTS do_task
                          (do_task_id VARCHAR(500),
                           do_task_type VARCHAR(100),
-                          do_linked_url VARCHAR(500),
+                          do_linked_url VARCHAR(2000),
                           do_many INTEGER,
                           task_user_id BIGINT,
                           do_rating INTEGER,
@@ -685,4 +686,4 @@ if __name__ == "__main__":
         time.sleep(1)
         if __name__ != "__main__":
             break
-    
+       

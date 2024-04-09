@@ -1,5 +1,5 @@
 import logging
-from telegram import Update, Bot
+from telegram import Update, Bot, ParseMode
 from telegram.ext import (
     ApplicationBuilder,
     ContextTypes,
@@ -533,9 +533,10 @@ async def send_top5(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await context.bot.send_message(
             chat_id=update.effective_chat.id,
             text=f"""
-The link to the task: {linked_url}
-You have to: {task_type}
-            """
+The link to the task: [link]({linked_url})
+You have to: *{task_type}*
+            """,
+            parse_mode="Markdown"
         )
     await context.bot.send_message(
         chat_id=update.effective_chat.id,

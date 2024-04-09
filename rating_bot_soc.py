@@ -230,6 +230,11 @@ async def add_task(update: Update, context: ContextTypes.DEFAULT_TYPE):
     cursor = connection.cursor()
     cursor.execute("UPDATE add_task SET rating = r.engage_rate FROM registr r INNER JOIN add_task t ON r.id = t.user_id;")
     connection.commit()
+    task_id = str(uuid.uuid4())
+    context.user_data["task_id"] = task_id
+    insert_query = '''INSERT INTO add_task (task_id, user_id) VALUES (%s, %s);'''
+    cursor.execute(insert_query, (task_id, update.effective_user.id))
+    connection.commit()
     await context.bot.send_message(
             chat_id=update.effective_chat.id,
             text="Please, choose task's type:",
@@ -244,12 +249,8 @@ async def linked_in(update: Update, context: ContextTypes.DEFAULT_TYPE):
     reply_keyback = [["Add your task","Take other's tasks"]]
     pattern = r'^https?://(www\.)?linkedin\.com/.*$'
     url = update.effective_message.text
+    task_id = context.user_data["task_id"]
     if re.match(pattern, url):
-        task_id = str(uuid.uuid4())
-        context.user_data["task_id"] = task_id
-        insert_query = '''INSERT INTO add_task (task_id, user_id) VALUES (%s, %s);'''
-        cursor.execute(insert_query, (task_id, update.effective_user.id))
-        connection.commit()
         insert_query = '''UPDATE add_task SET linked_url = %s WHERE task_id = %s;'''
         new_task = (url)
         cursor.execute(insert_query, (new_task, task_id,))

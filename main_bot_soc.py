@@ -185,7 +185,7 @@ async def choose_option(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
             return await menu(update, context)
         else:
-            return await write_function(update, context)
+            return await add_task(update, context)
     elif update.effective_message.text == "Take other's tasks":
         return await send_top5(update, context)
     elif update.effective_message.text == "Yes, sure.":
@@ -227,12 +227,23 @@ async def add_task(update: Update, context: ContextTypes.DEFAULT_TYPE):
                           CONSTRAINT fk_user_id FOREIGN KEY (user_id) REFERENCES registr(id));'''
     cursor.execute(create_table_query)
     connection.commit()
-    pattern = r'^https?://(www\.)?linkedin\.com/.*$'
-    url = update.effective_message.text
     cursor = connection.cursor()
     cursor.execute("UPDATE add_task SET rating = r.engage_rate FROM registr r INNER JOIN add_task t ON r.id = t.user_id;")
     connection.commit()
-
+    await context.bot.send_message(
+            chat_id=update.effective_chat.id,
+            text="Please, choose task's type:",
+            reply_markup=ReplyKeyboardMarkup(
+                reply_keyboard,
+                resize_keyboard=True,
+                one_time_keyboard=True
+            )
+        )
+    return CHOOSE_TYPE
+async def linked_in(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    reply_keyback = [["Add your task","Take other's tasks"]]
+    pattern = r'^https?://(www\.)?linkedin\.com/.*$'
+    url = update.effective_message.text
     if re.match(pattern, url):
         task_id = str(uuid.uuid4())
         context.user_data["task_id"] = task_id
@@ -253,14 +264,14 @@ async def add_task(update: Update, context: ContextTypes.DEFAULT_TYPE):
         connection.commit()
         await context.bot.send_message(
             chat_id=update.effective_chat.id,
-            text="Please, choose task's type:",
+            text="Great! You've added a new task. What do you prefer to do next?",
             reply_markup=ReplyKeyboardMarkup(
-                reply_keyboard,
+                reply_keyback, 
                 resize_keyboard=True,
                 one_time_keyboard=True
             )
         )
-        return CHOOSE_TYPE
+        return CHOOSE_OPTION
     else:
         await context.bot.send_message(
             chat_id=update.effective_chat.id,
@@ -332,7 +343,6 @@ async def many_skills_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
     return SKILLS
 async def many_skills(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    reply_keyback = [["Add your task","Take other's tasks"]]
     cursor = connection.cursor()
     endorse = int(update.effective_message.text)
     task_id = context.user_data["task_id"]
@@ -351,16 +361,7 @@ async def many_skills(update: Update, context: ContextTypes.DEFAULT_TYPE):
         new = (new_rate2)
         cursor.execute(insert_query3, (new, task_id))
         connection.commit()
-        await context.bot.send_message(
-            chat_id=update.effective_chat.id,
-            text="Great! You've added a new task. What do you prefer to do next?",
-            reply_markup=ReplyKeyboardMarkup(
-                reply_keyback, 
-                resize_keyboard=True,
-                one_time_keyboard=True
-            )
-        )
-        return CHOOSE_OPTION
+        return await midle_option(update, context)
     else:
         await context.bot.send_message(
             chat_id=update.effective_chat.id,
@@ -368,7 +369,6 @@ async def many_skills(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
         return await many_skills_text(update, context)
 async def many_follows(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    reply_keyback = [["Add your task","Take other's tasks"]]
     cursor = connection.cursor()
     follow = int(update.effective_message.text)
     task_id = context.user_data["task_id"]
@@ -387,16 +387,7 @@ async def many_follows(update: Update, context: ContextTypes.DEFAULT_TYPE):
         new = (new_rate2)
         cursor.execute(insert_query3, (new, task_id))
         connection.commit()
-        await context.bot.send_message(
-            chat_id=update.effective_chat.id,
-            text="Great! You've added a new task. What do you prefer to do next?",
-            reply_markup=ReplyKeyboardMarkup(
-                reply_keyback, 
-                resize_keyboard=True,
-                one_time_keyboard=True
-            )
-        )
-        return CHOOSE_OPTION
+        return await midle_option(update, context)
     else:
         await context.bot.send_message(
             chat_id=update.effective_chat.id,
@@ -404,7 +395,6 @@ async def many_follows(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
         return await many_follows_text(update, context)
 async def many_likes(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    reply_keyback = [["Add your task","Take other's tasks"]]
     cursor = connection.cursor()
     likes = int(update.effective_message.text)
     task_id = context.user_data["task_id"]
@@ -423,16 +413,7 @@ async def many_likes(update: Update, context: ContextTypes.DEFAULT_TYPE):
         new = (new_rate2)
         cursor.execute(insert_query3, (new, task_id))
         connection.commit()
-        await context.bot.send_message(
-            chat_id=update.effective_chat.id,
-            text="Great! You've added a new task. What do you prefer to do next?",
-            reply_markup=ReplyKeyboardMarkup(
-                reply_keyback, 
-                resize_keyboard=True,
-                one_time_keyboard=True
-            )
-        )
-        return CHOOSE_OPTION
+        return await midle_option(update, context)
     else:
         await context.bot.send_message(
             chat_id=update.effective_chat.id,
@@ -440,7 +421,6 @@ async def many_likes(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
         return await many_likes_text(update, context)
 async def many_coments(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    reply_keyback = [["Add your task","Take other's tasks"]]
     cursor = connection.cursor()
     coments = int(update.effective_message.text)
     task_id = context.user_data["task_id"]
@@ -459,16 +439,7 @@ async def many_coments(update: Update, context: ContextTypes.DEFAULT_TYPE):
         new = (new_rate2)
         cursor.execute(insert_query3, (new, task_id))
         connection.commit()
-        await context.bot.send_message(
-            chat_id=update.effective_chat.id,
-            text="Great! You've added a new task. What do you prefer to do next?",
-            reply_markup=ReplyKeyboardMarkup(
-                reply_keyback, 
-                resize_keyboard=True,
-                one_time_keyboard=True
-            )
-        )
-        return CHOOSE_OPTION
+        return await midle_option(update, context)
     else:
         await context.bot.send_message(
             chat_id=update.effective_chat.id,
@@ -476,7 +447,6 @@ async def many_coments(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
         return await many_coments_text(update, context)
 async def many_reposts(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    reply_keyback = [["Add your task","Take other's tasks"]]
     cursor = connection.cursor()
     reposts = int(update.effective_message.text)
     task_id = context.user_data["task_id"]
@@ -495,16 +465,7 @@ async def many_reposts(update: Update, context: ContextTypes.DEFAULT_TYPE):
         new = (new_rate2)
         cursor.execute(insert_query3, (new, task_id))
         connection.commit()
-        await context.bot.send_message(
-            chat_id=update.effective_chat.id,
-            text="Great! You've added a new task. What do you prefer to do next?",
-            reply_markup=ReplyKeyboardMarkup(
-                reply_keyback, 
-                resize_keyboard=True,
-                one_time_keyboard=True
-            )
-        )
-        return CHOOSE_OPTION
+        return await midle_option(update, context)
     else:
         await context.bot.send_message(
             chat_id=update.effective_chat.id,
@@ -697,7 +658,7 @@ def main():
                 LIKES: [MessageHandler(filters.TEXT, many_likes)],
                 COMENTS: [MessageHandler(filters.TEXT, many_coments)],
                 REPOSTS: [MessageHandler(filters.TEXT, many_reposts)],
-                ADD_TASK: [MessageHandler(filters.TEXT, add_task)],
+                ADD_TASK: [MessageHandler(filters.TEXT, linked_in)],
                 CITY: [MessageHandler(filters.TEXT, city)],
                 ROLE: [MessageHandler(filters.TEXT, role)],
                 REGISTRATION_INFO: [MessageHandler(filters.TEXT, reg_info)],

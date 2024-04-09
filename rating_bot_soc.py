@@ -1,5 +1,5 @@
 import logging
-from telegram import Update, Bot, ParseMode
+from telegram import Update, Bot
 from telegram.ext import (
     ApplicationBuilder,
     ContextTypes,

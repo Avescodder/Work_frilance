@@ -16,8 +16,9 @@ import pytz
 import uuid
 from geopy.geocoders import Nominatim
 from timezonefinder import TimezoneFinder
-import schedule
+import aioschedule
 import time
+import asyncio
 
 dbname = "test_leonid"
 user = "postgres"
@@ -643,7 +644,7 @@ async def send_everyone():
         utc_now = datetime.utcnow()
         user_local_time = utc_now + datetime.timedelta(hours=timezone_offset)
         if user_local_time.hour == 13 and user_local_time.minute == 0:
-            bot = Bot(token="6833931155:AAH6tnqZbNcZs8FhnjmCSybO2hcHWYfpbKc")
+            bot = Bot(token="7010685847:AAER6YdZmObSAJrolUQx9NLj8c3bP7hrSZ8")
             bot.send_message(chat_id=user_id, text="Hi! How is your day? Let's add some tasks to boost your profile and take some taska to help community.")
         
 
@@ -670,21 +671,19 @@ def main():
                 },
         fallbacks=[],
     )
-    schedule.every().day.at("23:00").do(clear_task_limit)
-    schedule.every().hour.do(send_everyone)
-
 
     application.add_handler(conv_handler)
 
     application.run_polling(allowed_updates=Update.ALL_TYPES)
 
+async def schedule_func():
+    aioschedule.every().day.at("23:00").do(clear_task_limit)
+    aioschedule.every().hour.do(send_everyone)
+    while True:
+        await aioschedule.run_pending()
+        await asyncio.sleep(1)
 
 if __name__ == "__main__":
-    schedule.run_pending()
     main()
-    while True:
-        schedule.run_pending()
-        time.sleep(1)
-        if __name__ != "__main__":
-            break
-    
+    asyncio.create_task(schedule_func())
+   

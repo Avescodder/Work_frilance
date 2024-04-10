@@ -499,10 +499,10 @@ async def send_top5(update: Update, context: ContextTypes.DEFAULT_TYPE):
         chat_id=update.effective_chat.id,
         text="Now. you'll receive 5 tasks to complete in 15 minutes. Complete them and increase your rating"
     )
-    cursor.execute('''
+    cursor.execute(f'''
             SELECT task_id, task_type, linked_url, many, rating, user_id, rate_calc_f, rate_calc_s
             FROM add_task
-            WHERE many > 0
+            WHERE many > 0 AND user_id != {update.effective_user.id}
             ORDER BY rating DESC
             LIMIT 5;
         ''')
@@ -533,9 +533,10 @@ async def send_top5(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await context.bot.send_message(
             chat_id=update.effective_chat.id,
             text=f"""
-The link to the task: {linked_url}
-You have to: {task_type}
-            """
+The link to the task: [link]({linked_url})
+You have to: *{task_type}*
+            """,
+            parse_mode="Markdown"
         )
     await context.bot.send_message(
         chat_id=update.effective_chat.id,
@@ -649,7 +650,7 @@ async def send_everyone():
 def main():
     application = (
         ApplicationBuilder()
-        .token("6169145315:AAFg2ain7sLNeAHEiAj0XnvxNZG0AFwJ2SY")
+        .token("7010685847:AAER6YdZmObSAJrolUQx9NLj8c3bP7hrSZ8")
         .build()
     )
     conv_handler = ConversationHandler(
@@ -686,4 +687,4 @@ if __name__ == "__main__":
         time.sleep(1)
         if __name__ != "__main__":
             break
-       
+    

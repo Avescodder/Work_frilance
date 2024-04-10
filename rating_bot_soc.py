@@ -632,20 +632,21 @@ async def pull_back(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     return await menu(update, context)
 
-async def clear_task_limit():
+async def clear_task_limit(context):
+    
     user_list = cursor.execute('SELECT id FROM registr WHERE status > 0').fetchall()
     user_list = [x[0] for x in user_list]
     cursor.execute(f'UPDATE registr SET status = 0 WHERE id in user_list')
     connection.commit()
-async def send_everyone():
+
+async def send_everyone(context):
     cursor.execute("SELECT user_id, time_zone FROM registr")
     users = cursor.fetchall()
     for user_id, timezone_offset in users:
         utc_now = datetime.utcnow()
         user_local_time = utc_now + datetime.timedelta(hours=timezone_offset)
         if user_local_time.hour == 13 and user_local_time.minute == 0:
-            bot = Bot(token="7010685847:AAER6YdZmObSAJrolUQx9NLj8c3bP7hrSZ8")
-            bot.send_message(chat_id=user_id, text="Hi! How is your day? Let's add some tasks to boost your profile and take some taska to help community.")
+            context.bot.send_message(chat_id=user_id, text="Hi! How is your day? Let's add some tasks to boost your profile and take some taska to help community.")
         
 
 def main():
@@ -673,17 +674,14 @@ def main():
     )
 
     application.add_handler(conv_handler)
+    application.job_queue.run_daily(clear_task_limit,datetime.time(hour=23,minute=0,tzinfo='Europe/London'))
+    hour_now = datetime.time().now().hour 
+    hour_now += 1 
+    application.job_queue.run_repeating(clear_task_limit,datetime.timedelta(hour=1), datetime.time(hour=hour_now))
 
     application.run_polling(allowed_updates=Update.ALL_TYPES)
 
-async def schedule_func():
-    aioschedule.every().day.at("23:00").do(clear_task_limit)
-    aioschedule.every().hour.do(send_everyone)
-    while True:
-        await aioschedule.run_pending()
-        await asyncio.sleep(1)
 
 if __name__ == "__main__":
     main()
-    asyncio.create_task(schedule_func())
    

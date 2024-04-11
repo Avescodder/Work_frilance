@@ -674,8 +674,8 @@ def main():
     )
 
     application.add_handler(conv_handler)
-    application.job_queue.run_daily(clear_task_limit,datetime.time(hour=23,minute=0,tzinfo='Europe/London'))
-    hour_now = datetime.time().now().hour 
+    application.job_queue.run_daily(clear_task_limit,datetime.time(hour=23,minute=0,tzinfo=pytz.timezone('Europe/London')))
+    hour_now = datetime.datetime.now().hour
     hour_now += 1 
     application.job_queue.run_repeating(clear_task_limit,datetime.timedelta(hour=1), datetime.time(hour=hour_now))
 

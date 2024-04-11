@@ -1,3 +1,4 @@
+import asyncio
 import logging
 from telegram import Update, Bot
 from telegram.ext import (
@@ -18,6 +19,7 @@ from geopy.geocoders import Nominatim
 from timezonefinder import TimezoneFinder
 import schedule
 import time
+import aioschedule
 
 dbname = "postgrs"
 user = "postgres"
@@ -631,26 +633,27 @@ async def pull_back(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     return await menu(update, context)
 
-async def clear_task_limit():
+async def clear_task_limit(context):
+    
     user_list = cursor.execute('SELECT id FROM registr WHERE status > 0').fetchall()
     user_list = [x[0] for x in user_list]
     cursor.execute(f'UPDATE registr SET status = 0 WHERE id in user_list')
     connection.commit()
-async def send_everyone():
+
+async def send_everyone(context):
     cursor.execute("SELECT user_id, time_zone FROM registr")
     users = cursor.fetchall()
     for user_id, timezone_offset in users:
         utc_now = datetime.utcnow()
         user_local_time = utc_now + datetime.timedelta(hours=timezone_offset)
         if user_local_time.hour == 13 and user_local_time.minute == 0:
-            bot = Bot(token="6833931155:AAH6tnqZbNcZs8FhnjmCSybO2hcHWYfpbKc")
-            bot.send_message(chat_id=user_id, text="Hi! How is your day? Let's add some tasks to boost your profile and take some taska to help community.")
+            context.bot.send_message(chat_id=user_id, text="Hi! How is your day? Let's add some tasks to boost your profile and take some taska to help community.")
         
 
 def main():
     application = (
         ApplicationBuilder()
-        .token("6169145315:AAFg2ain7sLNeAHEiAj0XnvxNZG0AFwJ2SY")
+        .token("7010685847:AAER6YdZmObSAJrolUQx9NLj8c3bP7hrSZ8")
         .build()
     )
     conv_handler = ConversationHandler(
@@ -670,21 +673,16 @@ def main():
                 },
         fallbacks=[],
     )
-    schedule.every().day.at("23:00").do(clear_task_limit)
-    schedule.every().hour.do(send_everyone)
-
 
     application.add_handler(conv_handler)
+    application.job_queue.run_daily(clear_task_limit,datetime.time(hour=23,minute=0,tzinfo=pytz.timezone('Europe/London')))
+    hour_now = datetime.datetime.now().hour
+    hour_now += 1 
+    application.job_queue.run_repeating(clear_task_limit,datetime.timedelta(hour=1), datetime.time(hour=hour_now))
 
     application.run_polling(allowed_updates=Update.ALL_TYPES)
 
 
 if __name__ == "__main__":
-    schedule.run_pending()
     main()
-    while True:
-        schedule.run_pending()
-        time.sleep(1)
-        if __name__ != "__main__":
-            break
-    
+   

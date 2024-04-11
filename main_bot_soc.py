@@ -653,7 +653,7 @@ async def send_everyone(context):
 def main():
     application = (
         ApplicationBuilder()
-        .token("7010685847:AAER6YdZmObSAJrolUQx9NLj8c3bP7hrSZ8")
+        .token("6169145315:AAFg2ain7sLNeAHEiAj0XnvxNZG0AFwJ2SY")
         .build()
     )
     conv_handler = ConversationHandler(

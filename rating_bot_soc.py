@@ -505,7 +505,7 @@ async def send_top5(update: Update, context: ContextTypes.DEFAULT_TYPE):
             FROM add_task
             WHERE many > 0 AND user_id != {update.effective_user.id}
             ORDER BY rating DESC
-            LIMIT 5;
+            LIMIT 1;
         ''')
     
     top_tasks = cursor.fetchall()

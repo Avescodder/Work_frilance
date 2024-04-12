@@ -669,13 +669,13 @@ async def pull_back(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def clear_task_limit(context):
     
-    user_list = cursor.execute('SELECT id FROM registr WHERE status > 0').fetchall()
+    user_list = cursor.execute('SELECT id FROM registr;').fetchall()
     user_list = [x[0] for x in user_list]
-    cursor.execute(f'UPDATE registr SET status = 0 WHERE id in user_list')
+    cursor.execute(f'UPDATE registr SET status = 0 WHERE id in user_list;')
     connection.commit()
 
 async def send_everyone(context):
-    cursor.execute("SELECT user_id, time_zone FROM registr")
+    cursor.execute("SELECT user_id, time_zone FROM registr;")
     users = cursor.fetchall()
     for user_id, timezone_offset in users:
         utc_now = datetime.utcnow()

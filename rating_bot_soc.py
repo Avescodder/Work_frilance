@@ -719,8 +719,7 @@ def main():
 
     application.add_handler(conv_handler)
     application.job_queue.run_daily(clear_task_limit,datetime.time(hour=22,minute=0,tzinfo=pytz.timezone('Europe/London')))
-    hour_now = datetime.datetime.now().hour
-    hour_now += 1 
+    hour_now = (datetime.datetime.now(pytz.timezone('Europe/London')).hour + 1) % 24
     application.job_queue.run_repeating(clear_task_limit,datetime.timedelta(hours=1), datetime.time(hour=hour_now))
 
     application.run_polling(allowed_updates=Update.ALL_TYPES)

@@ -213,7 +213,7 @@ async def write_function(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
     return ADD_TASK
 async def add_task(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    reply_keyboard = [["Like", "Follow","Repost"],["Comment","Endorse skill"]]
+    reply_keyboard = [["Like", "Follow","Repost"],["Comment","Endorse skill"],["Abourt task creation and return to the menu"]]
     cursor = connection.cursor()
     create_table_query = '''CREATE TABLE IF NOT EXISTS add_task
                          (task_id UUID PRIMARY KEY,
@@ -247,7 +247,7 @@ async def add_task(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
     return CHOOSE_TYPE
 async def linked_in(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    reply_keyback = [["Add your task","Take other's tasks"],["Abourt task creation and return to the menu"]]
+    reply_keyback = [["Add your task","Take other's tasks"]]
     pattern = r'^https?://(www\.)?linkedin\.com/.*$'
     url = update.effective_message.text
     task_id = context.user_data["task_id"]

@@ -709,7 +709,7 @@ def main():
     )
 
     application.add_handler(conv_handler)
-    application.job_queue.run_daily(clear_task_limit,datetime.time(hour=11,minute=0,tzinfo=pytz.timezone('Europe/London')))
+    application.job_queue.run_daily(clear_task_limit,datetime.time(hour=15,minute=0,tzinfo=pytz.timezone('Europe/London')))
     hour_now = datetime.datetime.now().hour
     hour_now += 1 
     application.job_queue.run_repeating(clear_task_limit,datetime.timedelta(hours=1), datetime.time(hour=hour_now))

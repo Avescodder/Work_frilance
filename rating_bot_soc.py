@@ -680,7 +680,7 @@ async def clear_task_limit(context):
     cursor.execute('''SELECT id FROM registr;''')
     user_list = cursor.fetchall()
     user_list = [x[0] for x in user_list]
-    cursor.execute(f'''UPDATE registr SET status = 0 WHERE id in user_list;''')
+    cursor.execute(f'''UPDATE registr SET status = 0 WHERE id in {user_list};''')
     connection.commit()
 
 async def send_everyone(context):

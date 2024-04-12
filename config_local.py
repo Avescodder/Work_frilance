@@ -930,3 +930,9 @@ ENABLE_SERVER_PASS_EXEC_CMD = False
 #############################################################################
 from pgadmin.evaluate_config import evaluate_and_patch_config
 locals().update(evaluate_and_patch_config(locals()))
+LOG_FILE = '/var/log/pgadmin4/pgadmin4.log'
+SQLITE_PATH = '/var/lib/pgadmin4/pgadmin4.db'
+SESSION_DB_PATH = '/var/lib/pgadmin4/sessions'
+STORAGE_DIR = '/var/lib/pgadmin4/storage'
+AZURE_CREDENTIAL_CACHE_DIR = '/var/lib/pgadmin4/azurecredentialcache'
+KERBEROS_CCACHE_DIR = '/var/lib/pgadmin4/kerberoscache'

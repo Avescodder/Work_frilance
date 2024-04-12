@@ -60,7 +60,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
                           engage_rate INTEGER);'''
     cursor.execute(create_table_query)
     connection.commit()
-    cursor.execute("INSERT INTO registr (id) VALUES (%s) ON CONFLICT (id) DO NOTHING", (update.effective_user.id,))
+    cursor.execute('''INSERT INTO registr (id) VALUES (%s) ON CONFLICT (id) DO NOTHING''', (update.effective_user.id,))
     connection.commit()
     await context.bot.send_message(
         chat_id=update.effective_chat.id,
@@ -229,7 +229,7 @@ async def add_task(update: Update, context: ContextTypes.DEFAULT_TYPE):
     cursor.execute(create_table_query)
     connection.commit()
     cursor = connection.cursor()
-    cursor.execute("UPDATE add_task SET rating = r.engage_rate FROM registr r INNER JOIN add_task t ON r.id = t.user_id;")
+    cursor.execute('''UPDATE add_task SET rating = r.engage_rate FROM registr r INNER JOIN add_task t ON r.id = t.user_id;''')
     connection.commit()
     task_id = str(uuid.uuid4())
     context.user_data["task_id"] = task_id
@@ -355,7 +355,7 @@ async def many_skills_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def many_skills(update: Update, context: ContextTypes.DEFAULT_TYPE):
     cursor = connection.cursor()
     endorse = update.effective_message.text
-    if isinstance(endorse, int):
+    try:
         endorse = int(update.effective_message.text)
         task_id = context.user_data["task_id"]
         if endorse == 1:
@@ -380,17 +380,17 @@ async def many_skills(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 text="You can't enter more than one endorsement"
             )
             return await many_skills_text(update, context)
-    else:
-        await context.bot.send_message(
-            chat_id=update.effective_chat.id,
-            text="Please adjust the number you entered to fit within the limits. The current number you entered exceeds the acceptable range. Thank you."
-        )
-        return await many_follows_text(update, context)
+    except:
+            await context.bot.send_message(
+                chat_id=update.effective_chat.id,
+                text="Please adjust the number you entered to fit within the limits. The current number you entered exceeds the acceptable range. Thank you."
+            )
+            return await many_follows_text(update, context)
 async def many_follows(update: Update, context: ContextTypes.DEFAULT_TYPE):
     cursor = connection.cursor()
-    follow = int(update.effective_message.text)
-    task_id = context.user_data["task_id"]
-    if isinstance(follow, int):
+    try:
+        follow = int(update.effective_message.text)
+        task_id = context.user_data["task_id"]
         if follow <= 5 and follow > 0:
             insert_query = '''UPDATE add_task SET many = %s WHERE task_id = %s;'''
             new_task = (follow)
@@ -413,7 +413,7 @@ async def many_follows(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 text="5 is a limit per the 'followers' task"
             )
             return await many_follows_text(update, context)
-    else:
+    except:
         await context.bot.send_message(
             chat_id=update.effective_chat.id,
             text="Please adjust the number you entered to fit within the limits. The current number you entered exceeds the acceptable range. Thank you."
@@ -421,9 +421,9 @@ async def many_follows(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return await many_follows_text(update, context)
 async def many_likes(update: Update, context: ContextTypes.DEFAULT_TYPE):
     cursor = connection.cursor()
-    likes = int(update.effective_message.text)
-    task_id = context.user_data["task_id"]
-    if isinstance(likes, int):
+    try:
+        likes = int(update.effective_message.text)
+        task_id = context.user_data["task_id"]
         if likes <= 10 and likes > 0:
             insert_query = '''UPDATE add_task SET many = %s WHERE task_id = %s;'''
             new_task = (likes)
@@ -446,7 +446,7 @@ async def many_likes(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 text="10 is a limit per the 'like' task"
             )
             return await many_likes_text(update, context)
-    else:
+    except:
         await context.bot.send_message(
             chat_id=update.effective_chat.id,
             text="Please adjust the number you entered to fit within the limits. The current number you entered exceeds the acceptable range. Thank you."
@@ -454,9 +454,9 @@ async def many_likes(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return await many_likes_text(update, context)
 async def many_coments(update: Update, context: ContextTypes.DEFAULT_TYPE):
     cursor = connection.cursor()
-    coments = int(update.effective_message.text)
-    task_id = context.user_data["task_id"]
-    if isinstance(coments, int):
+    try:
+        coments = int(update.effective_message.text)
+        task_id = context.user_data["task_id"]
         if coments <= 2 and coments > 0:
             insert_query = '''UPDATE add_task SET many = %s WHERE task_id = %s;'''
             new_task = (coments)
@@ -479,7 +479,7 @@ async def many_coments(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 text="2 is a limit per the 'comments' task"
             )
             return await many_coments_text(update, context)
-    else:
+    except:
         await context.bot.send_message(
             chat_id=update.effective_chat.id,
             text="Please adjust the number you entered to fit within the limits. The current number you entered exceeds the acceptable range. Thank you."
@@ -487,9 +487,9 @@ async def many_coments(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return await many_coments_text(update, context)
 async def many_reposts(update: Update, context: ContextTypes.DEFAULT_TYPE):
     cursor = connection.cursor()
-    reposts = int(update.effective_message.text)
-    task_id = context.user_data["task_id"]
-    if isinstance(reposts, int):
+    try:
+        reposts = int(update.effective_message.text)
+        task_id = context.user_data["task_id"]
         if reposts <= 3 or reposts > 0:
             insert_query = '''UPDATE add_task SET many = %s WHERE task_id = %s;'''
             new_task = (reposts)
@@ -512,7 +512,7 @@ async def many_reposts(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 text="3 is a limit per the 'repost' task"
             )
             return await many_reposts_text(update, context)
-    else:
+    except:
         await context.bot.send_message(
             chat_id=update.effective_chat.id,
             text="Please adjust the number you entered to fit within the limits. The current number you entered exceeds the acceptable range. Thank you."
@@ -670,20 +670,21 @@ async def pull_back(update: Update, context: ContextTypes.DEFAULT_TYPE):
         text="You've missed your task submission. All tasks were revoked, You can't complete new tasks till tomorrow. Your rating decreased."
     )
     cursor = connection.cursor()
-    cursor.execute("UPDATE add_task SET rating = r.engage_rate FROM registr r INNER JOIN add_task t ON r.id = t.user_id;")
+    cursor.execute('''UPDATE add_task SET rating = r.engage_rate FROM registr r INNER JOIN add_task t ON r.id = t.user_id;''')
     connection.commit()
 
     return await menu(update, context)
 
 async def clear_task_limit(context):
     
-    user_list = cursor.execute('SELECT id FROM registr;').fetchall()
+    cursor.execute('''SELECT id FROM registr;''')
+    user_list = cursor.fetchall()
     user_list = [x[0] for x in user_list]
-    cursor.execute(f'UPDATE registr SET status = 0 WHERE id in user_list;')
+    cursor.execute(f'''UPDATE registr SET status = 0 WHERE id in user_list;''')
     connection.commit()
 
 async def send_everyone(context):
-    cursor.execute("SELECT user_id, time_zone FROM registr;")
+    cursor.execute('''SELECT user_id, time_zone FROM registr;''')
     users = cursor.fetchall()
     for user_id, timezone_offset in users:
         utc_now = datetime.utcnow()
@@ -717,7 +718,7 @@ def main():
     )
 
     application.add_handler(conv_handler)
-    application.job_queue.run_daily(clear_task_limit,datetime.time(hour=15,minute=0,tzinfo=pytz.timezone('Europe/London')))
+    application.job_queue.run_daily(clear_task_limit,datetime.time(hour=22,minute=0,tzinfo=pytz.timezone('Europe/London')))
     hour_now = datetime.datetime.now().hour
     hour_now += 1 
     application.job_queue.run_repeating(clear_task_limit,datetime.timedelta(hours=1), datetime.time(hour=hour_now))

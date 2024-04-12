@@ -354,30 +354,38 @@ async def many_skills_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
     return SKILLS
 async def many_skills(update: Update, context: ContextTypes.DEFAULT_TYPE):
     cursor = connection.cursor()
-    endorse = int(update.effective_message.text)
-    task_id = context.user_data["task_id"]
-    if endorse == 1 and isinstance(endorse, int):
-        insert_query = '''UPDATE add_task SET many = %s WHERE task_id = %s;'''
-        new_task = (endorse)
-        cursor.execute(insert_query, (new_task, task_id))
-        connection.commit()
-        insert_query2 = '''UPDATE add_task SET rate_calc_f = %s WHERE task_id = %s;'''
-        new_rate = 160
-        new_rate = (new_rate)
-        cursor.execute(insert_query2, (new_rate, task_id))
-        connection.commit()
-        insert_query3 = '''UPDATE add_task SET rate_calc_s = %s WHERE task_id = %s;'''
-        new_rate2 = 1 / endorse
-        new = (new_rate2)
-        cursor.execute(insert_query3, (new, task_id))
-        connection.commit()
-        return await write_function(update, context)
+    endorse = update.effective_message.text
+    if isinstance(endorse, int):
+        endorse = int(update.effective_message.text)
+        task_id = context.user_data["task_id"]
+        if endorse == 1:
+            insert_query = '''UPDATE add_task SET many = %s WHERE task_id = %s;'''
+            new_task = (endorse)
+            cursor.execute(insert_query, (new_task, task_id))
+            connection.commit()
+            insert_query2 = '''UPDATE add_task SET rate_calc_f = %s WHERE task_id = %s;'''
+            new_rate = 160
+            new_rate = (new_rate)
+            cursor.execute(insert_query2, (new_rate, task_id))
+            connection.commit()
+            insert_query3 = '''UPDATE add_task SET rate_calc_s = %s WHERE task_id = %s;'''
+            new_rate2 = 1 / endorse
+            new = (new_rate2)
+            cursor.execute(insert_query3, (new, task_id))
+            connection.commit()
+            return await write_function(update, context)
+        else:
+            await context.bot.send_message(
+                chat_id=update.effective_chat.id,
+                text="You can't enter more than one endorsement"
+            )
+            return await many_skills_text(update, context)
     else:
         await context.bot.send_message(
             chat_id=update.effective_chat.id,
-            text="You can't enter more than one endorsement"
+            text="Please adjust the number you entered to fit within the limits. The current number you entered exceeds the acceptable range. Thank you."
         )
-        return await many_skills_text(update, context)
+        return await many_follows_text(update, context)
 async def many_follows(update: Update, context: ContextTypes.DEFAULT_TYPE):
     cursor = connection.cursor()
     follow = int(update.effective_message.text)

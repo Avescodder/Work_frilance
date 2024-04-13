@@ -559,8 +559,7 @@ async def send_top5(update: Update, context: ContextTypes.DEFAULT_TYPE):
         total_rate2 = sum(rate[7] for rate in top_tasks)
         revoke_coefficient = 1.1
         rank = (1 * total_rate * total_rate2) * revoke_coefficient
-        if isinstance(linked_url, str) and linked_url.strip():
-            for task_id, task_type, linked_url, many, rating, user_id, rate_calc_f, rate_calc_s in top_tasks:
+        for task_id, task_type, linked_url, many, rating, user_id, rate_calc_f, rate_calc_s in top_tasks:
                 insert = '''INSERT INTO do_task (do_task_id, task_user_id) VALUES (%s, %s);'''
                 cursor.execute(insert, (task_id, update.effective_user.id))
                 connection.commit()
@@ -578,6 +577,7 @@ async def send_top5(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 insert_query = '''UPDATE do_task SET start_time = CURRENT_TIMESTAMP WHERE do_task_id = %s;'''
                 cursor.execute(insert_query, (task_id,))
                 connection.commit()
+        if isinstance(linked_url, str):
         # Проверяем, является ли linked_url строкой и не является ли пустой строкой
                     # Отправляем сообщение с ссылкой
                 await context.bot.send_message(

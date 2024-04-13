@@ -679,9 +679,9 @@ async def clear_task_limit(context):
     
     cursor.execute('''SELECT id FROM registr;''')
     user_list = cursor.fetchall()
-    user_list = [x[0] for x in user_list]
-    cursor.execute(f'''UPDATE registr SET status = 0 WHERE id in {user_list};''')
-    connection.commit()
+    placeholders = ','.join(['%s' for _ in user_list])
+    query = f'''UPDATE registr SET status = 0 WHERE id IN ({placeholders});'''
+    cursor.execute(query, user_list)
 
 async def send_everyone(context):
     cursor.execute('''SELECT user_id, time_zone FROM registr;''')
@@ -718,7 +718,7 @@ def main():
     )
 
     application.add_handler(conv_handler)
-    application.job_queue.run_daily(clear_task_limit,datetime.time(hour=11,minute=15,tzinfo=pytz.timezone('Europe/London')))
+    application.job_queue.run_daily(clear_task_limit,datetime.time(hour=11,minute=25,tzinfo=pytz.timezone('Europe/London')))
     hour_now = (datetime.datetime.now(pytz.timezone('Europe/London')).hour + 1) % 24
     application.job_queue.run_repeating(clear_task_limit,datetime.timedelta(hours=1), datetime.time(hour=hour_now))
 

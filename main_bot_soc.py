@@ -541,10 +541,6 @@ async def send_top5(update: Update, context: ContextTypes.DEFAULT_TYPE):
     cursor.execute(create_table_query)
     connection.commit()
     reply_keyboard = [["Yes, sure.", "No, return back to the menu"]]
-    await context.bot.send_message(
-        chat_id=update.effective_chat.id,
-        text="Now. you'll receive 1 task to complete in 15 minutes. Complete it and increase your rating"
-    )
     cursor.execute(f'''
             SELECT task_id, task_type, linked_url, many, rating, user_id, rate_calc_f, rate_calc_s
             FROM add_task
@@ -587,8 +583,8 @@ async def send_top5(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 await context.bot.send_message(
                         chat_id=update.effective_chat.id,
                         text=f"""
-            The link to the task: [link]({linked_url})
-            You have to: *{task_type}*
+The link to the task: [link]({linked_url})
+You have to: *{task_type}*
                         """,
                         parse_mode="Markdown"
                     )

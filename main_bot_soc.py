@@ -554,53 +554,71 @@ async def send_top5(update: Update, context: ContextTypes.DEFAULT_TYPE):
         ''')
     
     top_tasks = cursor.fetchall()
-    total_rate = sum(rate[6] for rate in top_tasks)
-    total_rate2 = sum(rate[7] for rate in top_tasks)
-    revoke_coefficient = 1.1
-    rank = (1 * total_rate * total_rate2) * revoke_coefficient
-    for task_id, task_type, linked_url, many, rating, user_id, rate_calc_f, rate_calc_s in top_tasks:
-        insert = '''INSERT INTO do_task (do_task_id, task_user_id) VALUES (%s, %s);'''
-        cursor.execute(insert, (task_id, update.effective_user.id))
-        connection.commit()
-        update_query = '''
-        UPDATE do_task 
-        SET do_task_type = %s,
-            do_linked_url = %s,
-            do_many = %s,
-            do_rating = %s,
-            rate_calc_f = %s,
-            first_user_id = %s
-        WHERE task_user_id = %s'''
-        cursor.execute(update_query, (task_type, linked_url, many, rating, rank, user_id, update.effective_user.id))
-        connection.commit()
-        insert_query = '''UPDATE do_task SET start_time = CURRENT_TIMESTAMP WHERE do_task_id = %s;'''
-        cursor.execute(insert_query, (task_id,))
-        connection.commit()
-        if linked_url and linked_url[0][0] is None:
+    if top_tasks and top_tasks.strip():
+        total_rate = sum(rate[6] for rate in top_tasks)
+        total_rate2 = sum(rate[7] for rate in top_tasks)
+        revoke_coefficient = 1.1
+        rank = (1 * total_rate * total_rate2) * revoke_coefficient
+        if isinstance(linked_url, str) and linked_url.strip():
+            for task_id, task_type, linked_url, many, rating, user_id, rate_calc_f, rate_calc_s in top_tasks:
+                insert = '''INSERT INTO do_task (do_task_id, task_user_id) VALUES (%s, %s);'''
+                cursor.execute(insert, (task_id, update.effective_user.id))
+                connection.commit()
+                update_query = '''
+                UPDATE do_task 
+                SET do_task_type = %s,
+                    do_linked_url = %s,
+                    do_many = %s,
+                    do_rating = %s,
+                    rate_calc_f = %s,
+                    first_user_id = %s
+                WHERE task_user_id = %s'''
+                cursor.execute(update_query, (task_type, linked_url, many, rating, rank, user_id, update.effective_user.id))
+                connection.commit()
+                insert_query = '''UPDATE do_task SET start_time = CURRENT_TIMESTAMP WHERE do_task_id = %s;'''
+                cursor.execute(insert_query, (task_id,))
+                connection.commit()
+        # Проверяем, является ли linked_url строкой и не является ли пустой строкой
+                    # Отправляем сообщение с ссылкой
+                await context.bot.send_message(
+            chat_id=update.effective_chat.id,
+            text="Now. you'll receive 1 task to complete in 15 minutes. Complete it and increase your rating"
+        )
+                await context.bot.send_message(
+                        chat_id=update.effective_chat.id,
+                        text=f"""
+            The link to the task: [link]({linked_url})
+            You have to: *{task_type}*
+                        """,
+                        parse_mode="Markdown"
+                    )
+                    # Отправляем запрос на подтверждение готовности выполнения задания
+                await context.bot.send_message(
+                        chat_id=update.effective_chat.id,
+                        text="Are you ready to complete these tasks?",
+                        reply_markup=ReplyKeyboardMarkup(
+                            reply_keyboard,
+                            resize_keyboard=True,
+                            one_time_keyboard=True
+                        )
+                    )
+                return CHOOSE_OPTION
+        else:
+                    # Отправляем сообщение о том, что нет доступных задач в базе данных
+                    await context.bot.send_message(
+                        chat_id=update.effective_chat.id,
+                        text="There are currently no available tasks in the database"
+                    )
+                    # Возвращаемся к основному меню
+                    return await menu(update, context)
+    else:
+            # Отправляем сообщение о том, что нет доступных задач в базе данных
             await context.bot.send_message(
                 chat_id=update.effective_chat.id,
                 text="There are currently no available tasks in the database"
             )
+            # Возвращаемся к основному меню
             return await menu(update, context)
-        else:
-            await context.bot.send_message(
-                chat_id=update.effective_chat.id,
-                text=f"""
-    The link to the task: [link]({linked_url})
-    You have to: *{task_type}*
-                """,
-                parse_mode="Markdown"
-            )
-    await context.bot.send_message(
-            chat_id=update.effective_chat.id,
-            text="Are you ready to complete these task?",
-            reply_markup=ReplyKeyboardMarkup(
-                reply_keyboard,
-                resize_keyboard=True,
-                one_time_keyboard=True
-            )
-        )
-    return CHOOSE_OPTION
 
 async def finishing_task(update: Update, context: ContextTypes.DEFAULT_TYPE):
     keyboard = [["All tasks are completed"]]

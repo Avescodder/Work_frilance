@@ -49,6 +49,7 @@ logger = logging.getLogger(__name__)
 (CHOOSE_OPTION, REGISTRATION_INFO, ADD_TASK, ROLE, CITY, COMENTS, LIKES, REPOSTS, CHOOSE_TYPE, SKILLS, FOLLOWS, ERROR) = range(12)
 
 
+
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     cursor = connection.cursor()
     create_table_query = '''CREATE TABLE IF NOT EXISTS registr
@@ -61,7 +62,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
                           engage_rate INTEGER);'''
     cursor.execute(create_table_query)
     connection.commit()
-    cursor.execute("INSERT INTO registr (id) VALUES (%s) ON CONFLICT (id) DO NOTHING", (update.effective_user.id,))
+    cursor.execute('''INSERT INTO registr (id) VALUES (%s) ON CONFLICT (id) DO NOTHING''', (update.effective_user.id,))
     connection.commit()
     await context.bot.send_message(
         chat_id=update.effective_chat.id,
@@ -214,7 +215,7 @@ async def write_function(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
     return ADD_TASK
 async def add_task(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    reply_keyboard = [["Like", "Follow","Repost"],["Comment","Endorse skill"]]
+    reply_keyboard = [["Like", "Follow","Repost"],["Comment","Endorse skill"],["Abourt task creation and return to the menu"]]
     cursor = connection.cursor()
     create_table_query = '''CREATE TABLE IF NOT EXISTS add_task
                          (task_id UUID PRIMARY KEY,
@@ -230,7 +231,7 @@ async def add_task(update: Update, context: ContextTypes.DEFAULT_TYPE):
     cursor.execute(create_table_query)
     connection.commit()
     cursor = connection.cursor()
-    cursor.execute("UPDATE add_task SET rating = r.engage_rate FROM registr r INNER JOIN add_task t ON r.id = t.user_id;")
+    cursor.execute('''UPDATE add_task SET rating = r.engage_rate FROM registr r INNER JOIN add_task t ON r.id = t.user_id;''')
     connection.commit()
     task_id = str(uuid.uuid4())
     context.user_data["task_id"] = task_id
@@ -314,6 +315,14 @@ async def choose_type(update: Update, context: ContextTypes.DEFAULT_TYPE):
         cursor.execute(insert_query3, (new_task_3, task_id))
         connection.commit()
         return await many_reposts_text(update, context)
+    elif update.effective_message.text == "Abourt task creation and return to the menu":
+        return await menu(update, context)
+    else:
+        await context.bot.send_message(
+            chat_id=update.effective_chat.id,
+            text="Sorry, you should choose type of your task from reply keyboard, don't type anything by yourself please!"
+        )
+        return await add_task(update, context)
         
 async def many_likes_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await context.bot.send_message(
@@ -347,135 +356,170 @@ async def many_skills_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
     return SKILLS
 async def many_skills(update: Update, context: ContextTypes.DEFAULT_TYPE):
     cursor = connection.cursor()
-    endorse = int(update.effective_message.text)
-    task_id = context.user_data["task_id"]
-    if endorse == 1:
-        insert_query = '''UPDATE add_task SET many = %s WHERE task_id = %s;'''
-        new_task = (endorse)
-        cursor.execute(insert_query, (new_task, task_id))
-        connection.commit()
-        insert_query2 = '''UPDATE add_task SET rate_calc_f = %s WHERE task_id = %s;'''
-        new_rate = 160
-        new_rate = (new_rate)
-        cursor.execute(insert_query2, (new_rate, task_id))
-        connection.commit()
-        insert_query3 = '''UPDATE add_task SET rate_calc_s = %s WHERE task_id = %s;'''
-        new_rate2 = 1 / endorse
-        new = (new_rate2)
-        cursor.execute(insert_query3, (new, task_id))
-        connection.commit()
-        return await write_function(update, context)
-    else:
-        await context.bot.send_message(
-            chat_id=update.effective_chat.id,
-            text="You can't enter more than one endorsement"
-        )
-        return await many_skills_text(update, context)
+    endorse = update.effective_message.text
+    try:
+        endorse = int(update.effective_message.text)
+        task_id = context.user_data["task_id"]
+        if endorse == 1:
+            insert_query = '''UPDATE add_task SET many = %s WHERE task_id = %s;'''
+            new_task = (endorse)
+            cursor.execute(insert_query, (new_task, task_id))
+            connection.commit()
+            insert_query2 = '''UPDATE add_task SET rate_calc_f = %s WHERE task_id = %s;'''
+            new_rate = 160
+            new_rate = (new_rate)
+            cursor.execute(insert_query2, (new_rate, task_id))
+            connection.commit()
+            insert_query3 = '''UPDATE add_task SET rate_calc_s = %s WHERE task_id = %s;'''
+            new_rate2 = 1 / endorse
+            new = (new_rate2)
+            cursor.execute(insert_query3, (new, task_id))
+            connection.commit()
+            return await write_function(update, context)
+        else:
+            await context.bot.send_message(
+                chat_id=update.effective_chat.id,
+                text="You can't enter more than one endorsement"
+            )
+            return await many_skills_text(update, context)
+    except:
+            await context.bot.send_message(
+                chat_id=update.effective_chat.id,
+                text="Please adjust the number you entered to fit within the limits. The current number you entered exceeds the acceptable range. Thank you."
+            )
+            return await many_follows_text(update, context)
 async def many_follows(update: Update, context: ContextTypes.DEFAULT_TYPE):
     cursor = connection.cursor()
-    follow = int(update.effective_message.text)
-    task_id = context.user_data["task_id"]
-    if follow <= 5 and follow > 0:
-        insert_query = '''UPDATE add_task SET many = %s WHERE task_id = %s;'''
-        new_task = (follow)
-        cursor.execute(insert_query, (new_task, task_id))
-        connection.commit()
-        insert_query2 = '''UPDATE add_task SET rate_calc_f = %s WHERE task_id = %s;'''
-        new_rate = 170
-        new_rate = (new_rate)
-        cursor.execute(insert_query2, (new_rate, task_id))
-        connection.commit()
-        insert_query3 = '''UPDATE add_task SET rate_calc_s = %s WHERE task_id = %s;'''
-        new_rate2 = 5 / follow
-        new = (new_rate2)
-        cursor.execute(insert_query3, (new, task_id))
-        connection.commit()
-        return await write_function(update, context)
-    else:
+    try:
+        follow = int(update.effective_message.text)
+        task_id = context.user_data["task_id"]
+        if follow <= 5 and follow > 0:
+            insert_query = '''UPDATE add_task SET many = %s WHERE task_id = %s;'''
+            new_task = (follow)
+            cursor.execute(insert_query, (new_task, task_id))
+            connection.commit()
+            insert_query2 = '''UPDATE add_task SET rate_calc_f = %s WHERE task_id = %s;'''
+            new_rate = 170
+            new_rate = (new_rate)
+            cursor.execute(insert_query2, (new_rate, task_id))
+            connection.commit()
+            insert_query3 = '''UPDATE add_task SET rate_calc_s = %s WHERE task_id = %s;'''
+            new_rate2 = 5 / follow
+            new = (new_rate2)
+            cursor.execute(insert_query3, (new, task_id))
+            connection.commit()
+            return await write_function(update, context)
+        else:
+            await context.bot.send_message(
+                chat_id=update.effective_chat.id,
+                text="5 is a limit per the 'followers' task"
+            )
+            return await many_follows_text(update, context)
+    except:
         await context.bot.send_message(
             chat_id=update.effective_chat.id,
-            text="5 is a limit per the 'followers' task"
+            text="Please adjust the number you entered to fit within the limits. The current number you entered exceeds the acceptable range. Thank you."
         )
         return await many_follows_text(update, context)
 async def many_likes(update: Update, context: ContextTypes.DEFAULT_TYPE):
     cursor = connection.cursor()
-    likes = int(update.effective_message.text)
-    task_id = context.user_data["task_id"]
-    if likes <= 10 and likes > 0:
-        insert_query = '''UPDATE add_task SET many = %s WHERE task_id = %s;'''
-        new_task = (likes)
-        cursor.execute(insert_query, (new_task, task_id))
-        connection.commit()
-        insert_query2 = '''UPDATE add_task SET rate_calc_f = %s WHERE task_id = %s;'''
-        new_rate = 100
-        new_rate = (new_rate)
-        cursor.execute(insert_query2, (new_rate, task_id))
-        connection.commit()
-        insert_query3 = '''UPDATE add_task SET rate_calc_s = %s WHERE task_id = %s;'''
-        new_rate2 = 10 / likes
-        new = (new_rate2)
-        cursor.execute(insert_query3, (new, task_id))
-        connection.commit()
-        return await write_function(update, context)
-    else:
+    try:
+        likes = int(update.effective_message.text)
+        task_id = context.user_data["task_id"]
+        if likes <= 10 and likes > 0:
+            insert_query = '''UPDATE add_task SET many = %s WHERE task_id = %s;'''
+            new_task = (likes)
+            cursor.execute(insert_query, (new_task, task_id))
+            connection.commit()
+            insert_query2 = '''UPDATE add_task SET rate_calc_f = %s WHERE task_id = %s;'''
+            new_rate = 100
+            new_rate = (new_rate)
+            cursor.execute(insert_query2, (new_rate, task_id))
+            connection.commit()
+            insert_query3 = '''UPDATE add_task SET rate_calc_s = %s WHERE task_id = %s;'''
+            new_rate2 = 10 / likes
+            new = (new_rate2)
+            cursor.execute(insert_query3, (new, task_id))
+            connection.commit()
+            return await write_function(update, context)
+        else:
+            await context.bot.send_message(
+                chat_id=update.effective_chat.id,
+                text="10 is a limit per the 'like' task"
+            )
+            return await many_likes_text(update, context)
+    except:
         await context.bot.send_message(
             chat_id=update.effective_chat.id,
-            text="10 is a limit per the 'like' task"
+            text="Please adjust the number you entered to fit within the limits. The current number you entered exceeds the acceptable range. Thank you."
         )
         return await many_likes_text(update, context)
 async def many_coments(update: Update, context: ContextTypes.DEFAULT_TYPE):
     cursor = connection.cursor()
-    coments = int(update.effective_message.text)
-    task_id = context.user_data["task_id"]
-    if coments <= 2 and coments > 0:
-        insert_query = '''UPDATE add_task SET many = %s WHERE task_id = %s;'''
-        new_task = (coments)
-        cursor.execute(insert_query, (new_task, task_id))
-        connection.commit()
-        insert_query2 = '''UPDATE add_task SET rate_calc_f = %s WHERE task_id = %s;'''
-        new_rate = 200
-        new_rate = (new_rate)
-        cursor.execute(insert_query2, (new_rate, task_id))
-        connection.commit()
-        insert_query3 = '''UPDATE add_task SET rate_calc_s = %s WHERE task_id = %s;'''
-        new_rate2 = 2 / coments
-        new = (new_rate2)
-        cursor.execute(insert_query3, (new, task_id))
-        connection.commit()
-        return await write_function(update, context)
-    else:
+    try:
+        coments = int(update.effective_message.text)
+        task_id = context.user_data["task_id"]
+        if coments <= 2 and coments > 0:
+            insert_query = '''UPDATE add_task SET many = %s WHERE task_id = %s;'''
+            new_task = (coments)
+            cursor.execute(insert_query, (new_task, task_id))
+            connection.commit()
+            insert_query2 = '''UPDATE add_task SET rate_calc_f = %s WHERE task_id = %s;'''
+            new_rate = 200
+            new_rate = (new_rate)
+            cursor.execute(insert_query2, (new_rate, task_id))
+            connection.commit()
+            insert_query3 = '''UPDATE add_task SET rate_calc_s = %s WHERE task_id = %s;'''
+            new_rate2 = 2 / coments
+            new = (new_rate2)
+            cursor.execute(insert_query3, (new, task_id))
+            connection.commit()
+            return await write_function(update, context)
+        else:
+            await context.bot.send_message(
+                chat_id=update.effective_chat.id,
+                text="2 is a limit per the 'comments' task"
+            )
+            return await many_coments_text(update, context)
+    except:
         await context.bot.send_message(
             chat_id=update.effective_chat.id,
-            text="2 is a limit per the 'comments' task"
+            text="Please adjust the number you entered to fit within the limits. The current number you entered exceeds the acceptable range. Thank you."
         )
         return await many_coments_text(update, context)
 async def many_reposts(update: Update, context: ContextTypes.DEFAULT_TYPE):
     cursor = connection.cursor()
-    reposts = int(update.effective_message.text)
-    task_id = context.user_data["task_id"]
-    if reposts <= 3 or reposts > 0:
-        insert_query = '''UPDATE add_task SET many = %s WHERE task_id = %s;'''
-        new_task = (reposts)
-        cursor.execute(insert_query, (new_task, task_id))
-        connection.commit()
-        insert_query2 = '''UPDATE add_task SET rate_calc_f = %s WHERE task_id = %s;'''
-        new_rate = 130
-        new_rate = (new_rate)
-        cursor.execute(insert_query2, (new_rate, task_id))
-        connection.commit()
-        insert_query3 = '''UPDATE add_task SET rate_calc_s = %s WHERE task_id = %s;'''
-        new_rate2 = 3 / reposts
-        new = (new_rate2)
-        cursor.execute(insert_query3, (new, task_id))
-        connection.commit()
-        return await write_function(update, context)
-    else:
+    try:
+        reposts = int(update.effective_message.text)
+        task_id = context.user_data["task_id"]
+        if reposts <= 3 or reposts > 0:
+            insert_query = '''UPDATE add_task SET many = %s WHERE task_id = %s;'''
+            new_task = (reposts)
+            cursor.execute(insert_query, (new_task, task_id))
+            connection.commit()
+            insert_query2 = '''UPDATE add_task SET rate_calc_f = %s WHERE task_id = %s;'''
+            new_rate = 130
+            new_rate = (new_rate)
+            cursor.execute(insert_query2, (new_rate, task_id))
+            connection.commit()
+            insert_query3 = '''UPDATE add_task SET rate_calc_s = %s WHERE task_id = %s;'''
+            new_rate2 = 3 / reposts
+            new = (new_rate2)
+            cursor.execute(insert_query3, (new, task_id))
+            connection.commit()
+            return await write_function(update, context)
+        else:
+            await context.bot.send_message(
+                chat_id=update.effective_chat.id,
+                text="3 is a limit per the 'repost' task"
+            )
+            return await many_reposts_text(update, context)
+    except:
         await context.bot.send_message(
             chat_id=update.effective_chat.id,
-            text="3 is a limit per the 'repost' task"
+            text="Please adjust the number you entered to fit within the limits. The current number you entered exceeds the acceptable range. Thank you."
         )
         return await many_reposts_text(update, context)
-
 
 
 
@@ -499,14 +543,14 @@ async def send_top5(update: Update, context: ContextTypes.DEFAULT_TYPE):
     reply_keyboard = [["Yes, sure.", "No, return back to the menu"]]
     await context.bot.send_message(
         chat_id=update.effective_chat.id,
-        text="Now. you'll receive 5 tasks to complete in 15 minutes. Complete them and increase your rating"
+        text="Now. you'll receive 1 task to complete in 15 minutes. Complete it and increase your rating"
     )
     cursor.execute(f'''
             SELECT task_id, task_type, linked_url, many, rating, user_id, rate_calc_f, rate_calc_s
             FROM add_task
             WHERE many > 0 AND user_id != {update.effective_user.id}
             ORDER BY rating DESC
-            LIMIT 5;
+            LIMIT 1;
         ''')
     
     top_tasks = cursor.fetchall()
@@ -542,7 +586,7 @@ You have to: *{task_type}*
         )
     await context.bot.send_message(
         chat_id=update.effective_chat.id,
-        text="Are you ready to complete these tasks?",
+        text="Are you ready to complete these task?",
         reply_markup=ReplyKeyboardMarkup(
             reply_keyboard,
             resize_keyboard=True,
@@ -555,7 +599,7 @@ async def finishing_task(update: Update, context: ContextTypes.DEFAULT_TYPE):
     keyboard = [["All tasks are completed"]]
     await context.bot.send_message(
         chat_id=update.effective_chat.id,
-        text="You have 30 minutes to complete these tasks. If you skip them, your rating will be DECREASED.",
+        text="You have 30 minutes to complete these task. If you skip it, your rating will be DECREASED.",
         reply_markup=ReplyKeyboardMarkup(
             keyboard,
             resize_keyboard=True,
@@ -628,20 +672,21 @@ async def pull_back(update: Update, context: ContextTypes.DEFAULT_TYPE):
         text="You've missed your task submission. All tasks were revoked, You can't complete new tasks till tomorrow. Your rating decreased."
     )
     cursor = connection.cursor()
-    cursor.execute("UPDATE add_task SET rating = r.engage_rate FROM registr r INNER JOIN add_task t ON r.id = t.user_id;")
+    cursor.execute('''UPDATE add_task SET rating = r.engage_rate FROM registr r INNER JOIN add_task t ON r.id = t.user_id;''')
     connection.commit()
 
     return await menu(update, context)
 
 async def clear_task_limit(context):
     
-    user_list = cursor.execute('SELECT id FROM registr WHERE status > 0').fetchall()
-    user_list = [x[0] for x in user_list]
-    cursor.execute(f'UPDATE registr SET status = 0 WHERE id in user_list')
-    connection.commit()
+    cursor.execute('''SELECT id FROM registr;''')
+    user_list = cursor.fetchall()
+    placeholders = ','.join(['%s' for _ in user_list])
+    query = f'''UPDATE registr SET status = 0 WHERE id IN ({placeholders});'''
+    cursor.execute(query, user_list)
 
 async def send_everyone(context):
-    cursor.execute("SELECT user_id, time_zone FROM registr")
+    cursor.execute('''SELECT user_id, time_zone FROM registr;''')
     users = cursor.fetchall()
     for user_id, timezone_offset in users:
         utc_now = datetime.utcnow()
@@ -675,9 +720,8 @@ def main():
     )
 
     application.add_handler(conv_handler)
-    application.job_queue.run_daily(clear_task_limit,datetime.time(hour=23,minute=0,tzinfo=pytz.timezone('Europe/London')))
-    hour_now = datetime.datetime.now().hour
-    hour_now += 1 
+    application.job_queue.run_daily(clear_task_limit,datetime.time(hour=11,minute=25,tzinfo=pytz.timezone('Europe/London')))
+    hour_now = (datetime.datetime.now(pytz.timezone('Europe/London')).hour + 1) % 24
     application.job_queue.run_repeating(clear_task_limit,datetime.timedelta(hours=1), datetime.time(hour=hour_now))
 
     application.run_polling(allowed_updates=Update.ALL_TYPES)
@@ -686,3 +730,4 @@ def main():
 if __name__ == "__main__":
     main()
    
+

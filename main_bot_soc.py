@@ -215,7 +215,7 @@ async def write_function(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
     return ADD_TASK
 async def add_task(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    reply_keyboard = [["Like", "Follow","Repost"],["Comment","Endorse skill"],["Abourt task creation and return to the menu"]]
+    reply_keyboard = [["Like", "Follow","Repost"],["Comment","Endorse skill"],["Abort task creation and return to the menu"]]
     cursor = connection.cursor()
     create_table_query = '''CREATE TABLE IF NOT EXISTS add_task
                          (task_id UUID PRIMARY KEY,
@@ -387,7 +387,7 @@ async def many_skills(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 chat_id=update.effective_chat.id,
                 text="Please adjust the number you entered to fit within the limits. The current number you entered exceeds the acceptable range. Thank you."
             )
-            return await many_follows_text(update, context)
+            return await many_skills_text(update, context)
 async def many_follows(update: Update, context: ContextTypes.DEFAULT_TYPE):
     cursor = connection.cursor()
     try:
@@ -576,23 +576,30 @@ async def send_top5(update: Update, context: ContextTypes.DEFAULT_TYPE):
         insert_query = '''UPDATE do_task SET start_time = CURRENT_TIMESTAMP WHERE do_task_id = %s;'''
         cursor.execute(insert_query, (task_id,))
         connection.commit()
-        await context.bot.send_message(
-            chat_id=update.effective_chat.id,
-            text=f"""
-The link to the task: [link]({linked_url})
-You have to: *{task_type}*
-            """,
-            parse_mode="Markdown"
-        )
+        if linked_url == None and task_type == None:
+            await context.bot.send_message(
+                chat_id=update.effective_chat.id,
+                text="There are currently no available tasks in the database"
+            )
+            return await menu(update, context)
+        else:
+            await context.bot.send_message(
+                chat_id=update.effective_chat.id,
+                text=f"""
+    The link to the task: [link]({linked_url})
+    You have to: *{task_type}*
+                """,
+                parse_mode="Markdown"
+            )
     await context.bot.send_message(
-        chat_id=update.effective_chat.id,
-        text="Are you ready to complete these task?",
-        reply_markup=ReplyKeyboardMarkup(
-            reply_keyboard,
-            resize_keyboard=True,
-            one_time_keyboard=True
+            chat_id=update.effective_chat.id,
+            text="Are you ready to complete these task?",
+            reply_markup=ReplyKeyboardMarkup(
+                reply_keyboard,
+                resize_keyboard=True,
+                one_time_keyboard=True
+            )
         )
-    )
     return CHOOSE_OPTION
 
 async def finishing_task(update: Update, context: ContextTypes.DEFAULT_TYPE):

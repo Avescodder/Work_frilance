@@ -574,32 +574,45 @@ async def send_top5(update: Update, context: ContextTypes.DEFAULT_TYPE):
         insert_query = '''UPDATE do_task SET start_time = CURRENT_TIMESTAMP WHERE do_task_id = %s;'''
         cursor.execute(insert_query, (task_id,))
         connection.commit()
-        print(linked_url)
-        if linked_url and linked_url[0][0] is None:
+        if linked_url:
+    # Проверяем, является ли linked_url строкой и не является ли пустой строкой
+            if isinstance(linked_url, str) and linked_url.strip():
+                # Отправляем сообщение с ссылкой
+                await context.bot.send_message(
+                    chat_id=update.effective_chat.id,
+                    text=f"""
+        The link to the task: [link]({linked_url})
+        You have to: *{task_type}*
+                    """,
+                    parse_mode="Markdown"
+                )
+                # Отправляем запрос на подтверждение готовности выполнения задания
+                await context.bot.send_message(
+                    chat_id=update.effective_chat.id,
+                    text="Are you ready to complete these tasks?",
+                    reply_markup=ReplyKeyboardMarkup(
+                        reply_keyboard,
+                        resize_keyboard=True,
+                        one_time_keyboard=True
+                    )
+                )
+                return CHOOSE_OPTION
+            else:
+                # Отправляем сообщение о том, что нет доступных задач в базе данных
+                await context.bot.send_message(
+                    chat_id=update.effective_chat.id,
+                    text="There are currently no available tasks in the database"
+                )
+                # Возвращаемся к основному меню
+                return await menu(update, context)
+        else:
+            # Отправляем сообщение о том, что нет доступных задач в базе данных
             await context.bot.send_message(
                 chat_id=update.effective_chat.id,
                 text="There are currently no available tasks in the database"
             )
+            # Возвращаемся к основному меню
             return await menu(update, context)
-        else:
-            await context.bot.send_message(
-                chat_id=update.effective_chat.id,
-                text=f"""
-    The link to the task: [link]({linked_url})
-    You have to: *{task_type}*
-                """,
-                parse_mode="Markdown"
-            )
-    await context.bot.send_message(
-            chat_id=update.effective_chat.id,
-            text="Are you ready to complete these task?",
-            reply_markup=ReplyKeyboardMarkup(
-                reply_keyboard,
-                resize_keyboard=True,
-                one_time_keyboard=True
-            )
-        )
-    return CHOOSE_OPTION
 
 async def finishing_task(update: Update, context: ContextTypes.DEFAULT_TYPE):
     keyboard = [["All tasks are completed"]]

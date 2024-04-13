@@ -315,7 +315,7 @@ async def choose_type(update: Update, context: ContextTypes.DEFAULT_TYPE):
         cursor.execute(insert_query3, (new_task_3, task_id))
         connection.commit()
         return await many_reposts_text(update, context)
-    elif update.effective_message.text == "Abourt task creation and return to the menu":
+    elif update.effective_message.text == "Abort task creation and return to the menu":
         return await menu(update, context)
     else:
         await context.bot.send_message(

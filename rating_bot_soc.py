@@ -539,10 +539,6 @@ async def send_top5(update: Update, context: ContextTypes.DEFAULT_TYPE):
     cursor.execute(create_table_query)
     connection.commit()
     reply_keyboard = [["Yes, sure.", "No, return back to the menu"]]
-    await context.bot.send_message(
-        chat_id=update.effective_chat.id,
-        text="Now. you'll receive 1 task to complete in 15 minutes. Complete it and increase your rating"
-    )
     cursor.execute(f'''
             SELECT task_id, task_type, linked_url, many, rating, user_id, rate_calc_f, rate_calc_s
             FROM add_task
@@ -574,10 +570,14 @@ async def send_top5(update: Update, context: ContextTypes.DEFAULT_TYPE):
         insert_query = '''UPDATE do_task SET start_time = CURRENT_TIMESTAMP WHERE do_task_id = %s;'''
         cursor.execute(insert_query, (task_id,))
         connection.commit()
-        if linked_url:
+    if linked_url:
     # Проверяем, является ли linked_url строкой и не является ли пустой строкой
             if isinstance(linked_url, str) and linked_url.strip():
                 # Отправляем сообщение с ссылкой
+                await context.bot.send_message(
+        chat_id=update.effective_chat.id,
+        text="Now. you'll receive 1 task to complete in 15 minutes. Complete it and increase your rating"
+    )
                 await context.bot.send_message(
                     chat_id=update.effective_chat.id,
                     text=f"""
@@ -605,7 +605,7 @@ async def send_top5(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 )
                 # Возвращаемся к основному меню
                 return await menu(update, context)
-        else:
+    else:
             # Отправляем сообщение о том, что нет доступных задач в базе данных
             await context.bot.send_message(
                 chat_id=update.effective_chat.id,

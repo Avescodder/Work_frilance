@@ -574,6 +574,7 @@ async def send_top5(update: Update, context: ContextTypes.DEFAULT_TYPE):
         insert_query = '''UPDATE do_task SET start_time = CURRENT_TIMESTAMP WHERE do_task_id = %s;'''
         cursor.execute(insert_query, (task_id,))
         connection.commit()
+        print(linked_url)
         if linked_url and linked_url[0][0] is None:
             await context.bot.send_message(
                 chat_id=update.effective_chat.id,

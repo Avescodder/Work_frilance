@@ -554,7 +554,7 @@ async def send_top5(update: Update, context: ContextTypes.DEFAULT_TYPE):
         ''')
     
     top_tasks = cursor.fetchall()
-    if top_tasks and top_tasks.strip():
+    if top_tasks:
         total_rate = sum(rate[6] for rate in top_tasks)
         total_rate2 = sum(rate[7] for rate in top_tasks)
         revoke_coefficient = 1.1

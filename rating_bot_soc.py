@@ -570,7 +570,7 @@ async def send_top5(update: Update, context: ContextTypes.DEFAULT_TYPE):
         insert_query = '''UPDATE do_task SET start_time = CURRENT_TIMESTAMP WHERE do_task_id = %s;'''
         cursor.execute(insert_query, (task_id,))
         connection.commit()
-    if linked_url:
+    if linked_url is not None:
     # Проверяем, является ли linked_url строкой и не является ли пустой строкой
             if isinstance(linked_url, str) and linked_url.strip():
                 # Отправляем сообщение с ссылкой

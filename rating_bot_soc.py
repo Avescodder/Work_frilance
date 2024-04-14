@@ -213,7 +213,7 @@ async def write_function(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
     return ADD_TASK
 async def add_task(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    reply_keyboard = [["Like", "Follow","Repost"],["Comment","Endorse skill"],["Abourt task creation and return to the menu"]]
+    reply_keyboard = [["Like", "Follow","Repost"],["Comment","Endorse skill"],["Abort task creation and return to the menu"]]
     cursor = connection.cursor()
     create_table_query = '''CREATE TABLE IF NOT EXISTS add_task
                          (task_id UUID PRIMARY KEY,
@@ -490,7 +490,7 @@ async def many_reposts(update: Update, context: ContextTypes.DEFAULT_TYPE):
     try:
         reposts = int(update.effective_message.text)
         task_id = context.user_data["task_id"]
-        if reposts <= 3 and reposts > 0:
+        if reposts <= 3 or reposts > 0:
             insert_query = '''UPDATE add_task SET many = %s WHERE task_id = %s;'''
             new_task = (reposts)
             cursor.execute(insert_query, (new_task, task_id))
@@ -548,13 +548,12 @@ async def send_top5(update: Update, context: ContextTypes.DEFAULT_TYPE):
         ''')
     
     top_tasks = cursor.fetchall()
-    if top_tasks and top_tasks.strip():
+    if top_tasks:
         total_rate = sum(rate[6] for rate in top_tasks)
         total_rate2 = sum(rate[7] for rate in top_tasks)
         revoke_coefficient = 1.1
         rank = (1 * total_rate * total_rate2) * revoke_coefficient
-        if isinstance(linked_url, str) and linked_url.strip():
-            for task_id, task_type, linked_url, many, rating, user_id, rate_calc_f, rate_calc_s in top_tasks:
+        for task_id, task_type, linked_url, many, rating, user_id, rate_calc_f, rate_calc_s in top_tasks:
                 insert = '''INSERT INTO do_task (do_task_id, task_user_id) VALUES (%s, %s);'''
                 cursor.execute(insert, (task_id, update.effective_user.id))
                 connection.commit()
@@ -572,6 +571,7 @@ async def send_top5(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 insert_query = '''UPDATE do_task SET start_time = CURRENT_TIMESTAMP WHERE do_task_id = %s;'''
                 cursor.execute(insert_query, (task_id,))
                 connection.commit()
+        if isinstance(linked_url, str):
         # Проверяем, является ли linked_url строкой и не является ли пустой строкой
                     # Отправляем сообщение с ссылкой
                 await context.bot.send_message(
@@ -581,8 +581,8 @@ async def send_top5(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 await context.bot.send_message(
                         chat_id=update.effective_chat.id,
                         text=f"""
-            The link to the task: [link]({linked_url})
-            You have to: *{task_type}*
+The link to the task: [link]({linked_url})
+You have to: *{task_type}*
                         """,
                         parse_mode="Markdown"
                     )

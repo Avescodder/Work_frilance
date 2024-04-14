@@ -492,7 +492,7 @@ async def many_reposts(update: Update, context: ContextTypes.DEFAULT_TYPE):
     try:
         reposts = int(update.effective_message.text)
         task_id = context.user_data["task_id"]
-        if reposts <= 3 or reposts > 0:
+        if reposts <= 3 and reposts > 0:
             insert_query = '''UPDATE add_task SET many = %s WHERE task_id = %s;'''
             new_task = (reposts)
             cursor.execute(insert_query, (new_task, task_id))

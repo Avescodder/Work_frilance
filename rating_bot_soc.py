@@ -542,12 +542,13 @@ async def send_top5(update: Update, context: ContextTypes.DEFAULT_TYPE):
     cursor.execute(f'''
             SELECT task_id, task_type, linked_url, many, rating, user_id, rate_calc_f, rate_calc_s
             FROM add_task
-            WHERE many > 0 AND user_id != {update.effective_user.id} AND task_id NOT IN (SELECT do_task_id FROM do_task WHERE user_id = {update.effective_user.id})
+            WHERE many > 0 AND user_id != {update.effective_user.id} AND task_id NOT IN (SELECT do_task_id FROM do_task WHERE task_user_id = {update.effective_user.id})
             ORDER BY rating DESC
             LIMIT 1;
         ''')
     
     top_tasks = cursor.fetchall()
+    
     if top_tasks:
         total_rate = sum(rate[6] for rate in top_tasks)
         total_rate2 = sum(rate[7] for rate in top_tasks)

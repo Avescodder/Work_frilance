@@ -206,10 +206,15 @@ async def choose_option(update: Update, context: ContextTypes.DEFAULT_TYPE):
         connection.commit()
         return await menu(update, context)
 async def write_function(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    reply_keyboard = ["Abort task creation and return to the menu"]
     await context.bot.send_message(
         chat_id=update.effective_chat.id,
-        text="Insert your task's LinkedIn URL."
-    
+        text="Insert your task's LinkedIn URL.",
+        reply_markup=ReplyKeyboardMarkup(
+            reply_keyboard,
+            one_time_keyboard=True,
+            resize_keyboard=True
+        )
     )
     return ADD_TASK
 async def add_task(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -251,35 +256,43 @@ async def linked_in(update: Update, context: ContextTypes.DEFAULT_TYPE):
     pattern = r'^https?://(www\.)?linkedin\.com/.*$'
     url = update.effective_message.text
     task_id = context.user_data["task_id"]
-    if re.match(pattern, url):
-        insert_query = '''UPDATE add_task SET linked_url = %s WHERE task_id = %s;'''
-        new_task = (url)
-        cursor.execute(insert_query, (new_task, task_id,))
+    if url == "Abort task creation and return to the menu":
+        delete_query = '''DELETE FROM add_task WHERE task_id = %s;'''
+        cursor.execute(delete_query, (task_id,))
         connection.commit()
-        cursor.execute('''SELECT status FROM registr WHERE id = %s;''', (update.effective_user.id,))
-        status = cursor.fetchone()[0]
-        status = int(status)
-        status += 1
-        insert_query2 = '''UPDATE registr SET status = %s WHERE id = %s;'''
-        new_task2 = (status)
-        cursor.execute(insert_query2, (new_task2, update.effective_user.id,))
+        cursor.execute('''UPDATE add_task SET task_id = NULL WHERE task_id = %s;''',(task_id,))
         connection.commit()
-        await context.bot.send_message(
-            chat_id=update.effective_chat.id,
-            text="Great! You've added a new task. What do you prefer to do next?",
-            reply_markup=ReplyKeyboardMarkup(
-                reply_keyback, 
-                resize_keyboard=True,
-                one_time_keyboard=True
-            )
-        )
-        return CHOOSE_OPTION
+        return await menu(update, context)
     else:
-        await context.bot.send_message(
-            chat_id=update.effective_chat.id,
-            text="Incorrect URL. Please, make sure that you paste correct and full LinkedIn URL to your task"
-        )
-        return await write_function(update, context)
+        if re.match(pattern, url):
+            insert_query = '''UPDATE add_task SET linked_url = %s WHERE task_id = %s;'''
+            new_task = (url)
+            cursor.execute(insert_query, (new_task, task_id,))
+            connection.commit()
+            cursor.execute('''SELECT status FROM registr WHERE id = %s;''', (update.effective_user.id,))
+            status = cursor.fetchone()[0]
+            status = int(status)
+            status += 1
+            insert_query2 = '''UPDATE registr SET status = %s WHERE id = %s;'''
+            new_task2 = (status)
+            cursor.execute(insert_query2, (new_task2, update.effective_user.id,))
+            connection.commit()
+            await context.bot.send_message(
+                chat_id=update.effective_chat.id,
+                text="Great! You've added a new task. What do you prefer to do next?",
+                reply_markup=ReplyKeyboardMarkup(
+                    reply_keyback, 
+                    resize_keyboard=True,
+                    one_time_keyboard=True
+                )
+            )
+            return CHOOSE_OPTION
+        else:
+            await context.bot.send_message(
+                chat_id=update.effective_chat.id,
+                text="Incorrect URL. Please, make sure that you paste correct and full LinkedIn URL to your task"
+            )
+            return await write_function(update, context)
 async def choose_type(update: Update, context: ContextTypes.DEFAULT_TYPE):
     cursor = connection.cursor()
     task_id = context.user_data["task_id"]

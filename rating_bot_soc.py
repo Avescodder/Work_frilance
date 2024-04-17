@@ -206,7 +206,7 @@ async def choose_option(update: Update, context: ContextTypes.DEFAULT_TYPE):
         connection.commit()
         return await menu(update, context)
 async def write_function(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    reply_keyboard = ["Abort task creation and return to the menu"]
+    reply_keyboard = [["Abort task creation and return to the menu"]]
     await context.bot.send_message(
         chat_id=update.effective_chat.id,
         text="Insert your task's LinkedIn URL.",
@@ -437,13 +437,7 @@ async def many_likes(update: Update, context: ContextTypes.DEFAULT_TYPE):
     try:
         likes = int(update.effective_message.text)
         task_id = context.user_data["task_id"]
-    except:
-        await context.bot.send_message(
-            chat_id=update.effective_chat.id,
-            text="Please adjust the number you entered to fit within the limits. The current number you entered exceeds the acceptable range. Thank you."
-        )
-        return await many_likes_text(update, context)
-    if likes <= 10 and likes > 0:
+        if likes <= 10 and likes > 0:
             insert_query = '''UPDATE add_task SET many = %s WHERE task_id = %s;'''
             new_task = (likes)
             cursor.execute(insert_query, (new_task, task_id))
@@ -459,12 +453,18 @@ async def many_likes(update: Update, context: ContextTypes.DEFAULT_TYPE):
             cursor.execute(insert_query3, (new, task_id))
             connection.commit()
             return await write_function(update, context)
-    else:
+        else:
             await context.bot.send_message(
                 chat_id=update.effective_chat.id,
                 text="10 is a limit per the 'like' task"
             )
             return await many_likes_text(update, context)
+    except:
+        await context.bot.send_message(
+            chat_id=update.effective_chat.id,
+            text="Please adjust the number you entered to fit within the limits. The current number you entered exceeds the acceptable range. Thank you."
+        )
+        return await many_likes_text(update, context)
 async def many_coments(update: Update, context: ContextTypes.DEFAULT_TYPE):
     cursor = connection.cursor()
     try:

@@ -569,7 +569,7 @@ async def send_top5(update: Update, context: ContextTypes.DEFAULT_TYPE):
                      finished_linked_url VARCHAR(2000),
                      first_user_id INTEGER,
                      task_user_id BIGINT,
-                     start_time INTEGER,
+                     start_time TIMESTAMP,
                      finished_time TIMESTAMP,
                      create_id UUID);
 '''
@@ -663,7 +663,7 @@ async def finishing_task(update: Update, context: ContextTypes.DEFAULT_TYPE):
             one_time_keyboard=True
         )
     )
-    time_delta = datetime.timedelta(minutes=15)
+    time_delta = datetime.timedelta(seconds=15)
     context.job_queue.run_once(chek_chek, time_delta, chat_id=update.effective_chat.id, data=update)
     return CHOOSE_OPTION
 

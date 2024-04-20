@@ -570,7 +570,7 @@ async def send_top5(update: Update, context: ContextTypes.DEFAULT_TYPE):
                      first_user_id INTEGER,
                      task_user_id BIGINT,
                      start_time INTEGER,
-                     finished_time DATETIME,
+                     finished_time TIMESTAMP,
                      create_id UUID);
 '''
     cursor.execute(create_table)

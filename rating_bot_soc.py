@@ -692,7 +692,7 @@ async def chek_chek(context: ContextTypes.DEFAULT_TYPE):
             task_user_id = rate[5]
             f_user_id = rate[6]
             start_time = rate[7]
-            start_time = int(start_time)
+            start_time = str(start_time)
             insrt = '''UPDATE finished_tasks 
                     SET finished_task_id = %s,
                      finished_task_type = %s,

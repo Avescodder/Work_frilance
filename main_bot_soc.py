@@ -571,7 +571,7 @@ async def send_top5(update: Update, context: ContextTypes.DEFAULT_TYPE):
                      finished_linked_url VARCHAR(2000),
                      first_user_id INTEGER,
                      task_user_id BIGINT,
-                     start_time TIMESTAMP,
+                     start_time VARCHAR(500),
                      finished_time TIMESTAMP,
                      create_id UUID);
 '''

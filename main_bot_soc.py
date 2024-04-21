@@ -102,6 +102,13 @@ async def reg_info(update: Update, context: ContextTypes.DEFAULT_TYPE):
         new_user = (url)
         cursor.execute(insert_query, (new_user, update.effective_user.id,))
         connection.commit()
+        current_time = datetime.datetime.now()
+        update_query = '''UPDATE registr SET creat_time = %s WHERE id = %s;'''
+        cursor.execute(update_query, (current_time, update.effective_user.id,))
+        connection.commit()
+        update_query_name = '''UPDATE registr SET user_name = %s WHERE id = %s;'''
+        cursor.execute(update_query_name, (update.effective_user.full_name, update.effective_user.id,))
+        connection.commit()
         await context.bot.send_message(
             chat_id=update.effective_chat.id,
             text="""Name your Profession (SEO specialist, PPC specialist, Head of e-commerce, etc)"""
@@ -208,10 +215,15 @@ async def choose_option(update: Update, context: ContextTypes.DEFAULT_TYPE):
         connection.commit()
         return await menu(update, context)
 async def write_function(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    reply_keyboard = [["Abort task creation and return to the menu"]]
     await context.bot.send_message(
         chat_id=update.effective_chat.id,
-        text="Insert your task's LinkedIn URL."
-    
+        text="Insert your task's LinkedIn URL.",
+        reply_markup=ReplyKeyboardMarkup(
+            reply_keyboard,
+            one_time_keyboard=True,
+            resize_keyboard=True
+        )
     )
     return ADD_TASK
 async def add_task(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -238,6 +250,10 @@ async def add_task(update: Update, context: ContextTypes.DEFAULT_TYPE):
     insert_query = '''INSERT INTO add_task (task_id, user_id) VALUES (%s, %s);'''
     cursor.execute(insert_query, (task_id, update.effective_user.id))
     connection.commit()
+    current_time = datetime.datetime.now()
+    update_query = '''UPDATE add_task SET creat_time = %s WHERE task_id = %s;'''
+    cursor.execute(update_query, (current_time, task_id,))
+    connection.commit()
     await context.bot.send_message(
             chat_id=update.effective_chat.id,
             text="Please, choose task's type:",
@@ -253,35 +269,43 @@ async def linked_in(update: Update, context: ContextTypes.DEFAULT_TYPE):
     pattern = r'^https?://(www\.)?linkedin\.com/.*$'
     url = update.effective_message.text
     task_id = context.user_data["task_id"]
-    if re.match(pattern, url):
-        insert_query = '''UPDATE add_task SET linked_url = %s WHERE task_id = %s;'''
-        new_task = (url)
-        cursor.execute(insert_query, (new_task, task_id,))
+    if url == "Abort task creation and return to the menu":
+        delete_query = '''DELETE FROM add_task WHERE task_id = %s;'''
+        cursor.execute(delete_query, (task_id,))
         connection.commit()
-        cursor.execute('''SELECT status FROM registr WHERE id = %s;''', (update.effective_user.id,))
-        status = cursor.fetchone()[0]
-        status = int(status)
-        status += 1
-        insert_query2 = '''UPDATE registr SET status = %s WHERE id = %s;'''
-        new_task2 = (status)
-        cursor.execute(insert_query2, (new_task2, update.effective_user.id,))
+        cursor.execute('''UPDATE add_task SET task_id = NULL WHERE task_id = %s;''',(task_id,))
         connection.commit()
-        await context.bot.send_message(
-            chat_id=update.effective_chat.id,
-            text="Great! You've added a new task. What do you prefer to do next?",
-            reply_markup=ReplyKeyboardMarkup(
-                reply_keyback, 
-                resize_keyboard=True,
-                one_time_keyboard=True
-            )
-        )
-        return CHOOSE_OPTION
+        return await menu(update, context)
     else:
-        await context.bot.send_message(
-            chat_id=update.effective_chat.id,
-            text="Incorrect URL. Please, make sure that you paste correct and full LinkedIn URL to your task"
-        )
-        return await write_function(update, context)
+        if re.match(pattern, url):
+            insert_query = '''UPDATE add_task SET linked_url = %s WHERE task_id = %s;'''
+            new_task = (url)
+            cursor.execute(insert_query, (new_task, task_id,))
+            connection.commit()
+            cursor.execute('''SELECT status FROM registr WHERE id = %s;''', (update.effective_user.id,))
+            status = cursor.fetchone()[0]
+            status = int(status)
+            status += 1
+            insert_query2 = '''UPDATE registr SET status = %s WHERE id = %s;'''
+            new_task2 = (status)
+            cursor.execute(insert_query2, (new_task2, update.effective_user.id,))
+            connection.commit()
+            await context.bot.send_message(
+                chat_id=update.effective_chat.id,
+                text="Great! You've added a new task. What do you prefer to do next?",
+                reply_markup=ReplyKeyboardMarkup(
+                    reply_keyback, 
+                    resize_keyboard=True,
+                    one_time_keyboard=True
+                )
+            )
+            return CHOOSE_OPTION
+        else:
+            await context.bot.send_message(
+                chat_id=update.effective_chat.id,
+                text="Incorrect URL. Please, make sure that you paste correct and full LinkedIn URL to your task"
+            )
+            return await write_function(update, context)
 async def choose_type(update: Update, context: ContextTypes.DEFAULT_TYPE):
     cursor = connection.cursor()
     task_id = context.user_data["task_id"]
@@ -540,16 +564,30 @@ async def send_top5(update: Update, context: ContextTypes.DEFAULT_TYPE):
                           CONSTRAINT fk_user_id FOREIGN KEY (task_user_id) REFERENCES registr(id));'''
     cursor.execute(create_table_query)
     connection.commit()
+    create_table = '''
+                    CREATE TABLE IF NOT EXISTS finished_tasks
+                    (finished_task_id VARCHAR(500),
+                     finished_task_type VARCHAR(100),
+                     finished_linked_url VARCHAR(2000),
+                     first_user_id INTEGER,
+                     task_user_id BIGINT,
+                     start_time TIMESTAMP,
+                     finished_time TIMESTAMP,
+                     create_id UUID);
+'''
+    cursor.execute(create_table)
+    connection.commit()
     reply_keyboard = [["Yes, sure.", "No, return back to the menu"]]
     cursor.execute(f'''
             SELECT task_id, task_type, linked_url, many, rating, user_id, rate_calc_f, rate_calc_s
             FROM add_task
-            WHERE many > 0 AND user_id != {update.effective_user.id}
+            WHERE many > 0 AND user_id != {update.effective_user.id} AND task_id NOT IN (SELECT do_task_id FROM do_task WHERE task_user_id = {update.effective_user.id})
             ORDER BY rating DESC
             LIMIT 1;
         ''')
     
     top_tasks = cursor.fetchall()
+    
     if top_tasks:
         total_rate = sum(rate[6] for rate in top_tasks)
         total_rate2 = sum(rate[7] for rate in top_tasks)
@@ -567,8 +605,8 @@ async def send_top5(update: Update, context: ContextTypes.DEFAULT_TYPE):
                     do_rating = %s,
                     rate_calc_f = %s,
                     first_user_id = %s
-                WHERE task_user_id = %s'''
-                cursor.execute(update_query, (task_type, linked_url, many, rating, rank, user_id, update.effective_user.id))
+                WHERE task_user_id = %s;'''
+                cursor.execute(update_query, (task_type, linked_url, many, rating, rank, user_id, update.effective_user.id,))
                 connection.commit()
                 insert_query = '''UPDATE do_task SET start_time = CURRENT_TIMESTAMP WHERE do_task_id = %s;'''
                 cursor.execute(insert_query, (task_id,))
@@ -627,7 +665,7 @@ async def finishing_task(update: Update, context: ContextTypes.DEFAULT_TYPE):
             one_time_keyboard=True
         )
     )
-    time_delta = datetime.timedelta(hours=1)
+    time_delta = datetime.timedelta(minutes=15)
     context.job_queue.run_once(chek_chek, time_delta, chat_id=update.effective_chat.id, data=update)
     return CHOOSE_OPTION
 
@@ -639,14 +677,35 @@ async def chek_chek(context: ContextTypes.DEFAULT_TYPE):
     status = cursor.fetchone()[0]
     status = int(status)
     if status == 1:
+        create_id = str(uuid.uuid4())
+        insert_uqer = '''INSERT INTO finished_tasks (create_id) VALUES (%s);'''
+        cursor.execute(insert_uqer, (create_id,))
+        connection.commit()
         cursor.execute(f'''
-            SELECT rate_calc_f, do_many, do_task_id FROM do_task WHERE task_user_id = {job.data.effective_user.id} ORDER BY start_time DESC LIMIT 5;
+            SELECT rate_calc_f, do_many, do_task_id, do_task_type, do_linked_url, task_user_id, first_user_id, start_time FROM do_task WHERE task_user_id = {job.data.effective_user.id} ORDER BY start_time DESC LIMIT 5;
         ''')
         
         for rate in cursor.fetchall():
             user_rate = rate[0] 
             user_many = rate[1]
             task_id = rate[2]
+            task_type = rate[3]
+            liked_url = rate[4]
+            task_user_id = rate[5]
+            f_user_id = rate[6]
+            start_time = rate[7]
+            start_time = str(start_time)
+            insrt = '''UPDATE finished_tasks 
+                    SET finished_task_id = %s,
+                     finished_task_type = %s,
+                     finished_linked_url = %s,
+                     first_user_id = %s,
+                     task_user_id = %s,
+                     start_time = %s,
+                     finished_time = CURRENT_TIMESTAMP 
+                     WHERE create_id = %s;'''
+            cursor.execute(insrt, (task_id, task_type, liked_url, f_user_id, task_user_id, start_time, create_id,))
+            connection.commit()
             user_many -= 1
             insert_query2 = '''UPDATE add_task SET many = %s WHERE task_id = %s;'''
             cursor.execute(insert_query2, (user_many, task_id,))
@@ -663,7 +722,7 @@ async def pull_back(update: Update, context: ContextTypes.DEFAULT_TYPE):
     cursor.execute(f'''
         SELECT do_task_id, do_task_type, do_linked_url, do_many, first_user_id
         FROM do_task
-        WHERE now() - start_time >= INTERVAL '1 hour' 
+        WHERE now() - start_time >= INTERVAL '15 minute' 
         AND task_user_id = {update.effective_user.id};
     ''')
     unfinished_tasks = cursor.fetchall()

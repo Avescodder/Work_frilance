@@ -768,10 +768,11 @@ async def send_everyone(context):
     users = cursor.fetchall()
     for user_id, timezone_offset in users:
         utc_now = datetime.utcnow()
-        user_local_time = utc_now + datetime.timedelta(hours=timezone_offset)
+        user_timezone = pytz.timezone(timezone_offset)
+        user_local_time = utc_now.replace(tzinfo=pytz.utc).astimezone(user_timezone)
         if user_local_time.hour == 13 and user_local_time.minute == 0:
-            context.bot.send_message(chat_id=user_id, text="Hi! How is your day? Let's add some tasks to boost your profile and take some taska to help community.")
-        
+            context.bot.send_message(chat_id=user_id, text="Hi! How is your day? Let's add some tasks to boost your profile and take some tasks to help the community.")
+
 
 def main():
     application = (

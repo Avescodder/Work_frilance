@@ -640,7 +640,7 @@ And *{task_type}*
                     )
                     # Отправляем запрос на подтверждение готовности выполнения задания
                 
-                return finishing_task(update, context)
+                return await finishing_task(update, context)
         else:
                     # Отправляем сообщение о том, что нет доступных задач в базе данных
                     await context.bot.send_message(

@@ -109,15 +109,28 @@ async def reg_info(update: Update, context: ContextTypes.DEFAULT_TYPE):
         connection.commit()
         await context.bot.send_message(
             chat_id=update.effective_chat.id,
-            text="""Name your Profession (SEO specialist, PPC specialist, Head of e-commerce, etc)"""
+            text="""Add your name exactly like on LinkedIn"""
             )
-        return ROLE
+        return USER_NAME
     else:
         await context.bot.send_message(
             chat_id=update.effective_chat.id,
             text="You have entered the incorrect URL. Make sure that you paste full LinkedIn URL from your browser"
         )
         return await midle_option(update, context)
+
+async def user_name(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    cursor = connection.cursor()
+    user_name = update.effective_message.text
+    insert_query = '''UPDATE registr SET linkedin_name = %s WHERE id = %s;'''
+    new_user = (user_name)
+    cursor.execute(insert_query, (new_user, update.effective_user.id,))
+    connection.commit()
+    await context.bot.send_message(
+        chat_id=update.effective_chat.id,
+        text="Name your Profession (SEO specialist, PPC specialist, Head of e-commerce, etc)"
+    )
+    return ROLE
 async def city(update: Update, context:ContextTypes.DEFAULT_TYPE):
     cursor = connection.cursor()
     city = update.effective_message.text
@@ -196,14 +209,6 @@ async def choose_option(update: Update, context: ContextTypes.DEFAULT_TYPE):
             return await add_task(update, context)
     elif update.effective_message.text == "Take new task":
         return await send_top5(update, context)
-    elif update.effective_message.text == "Yes, sure.":
-        await context.bot.send_message(
-            chat_id=update.effective_chat.id,
-            text="Great! Just do it and confirm it."
-        )
-        return await finishing_task(update, context)
-    elif update.effective_message.text == "No, return back to the menu":
-        return await pull_back(update, context)
     elif update.effective_message.text == "All tasks are completed":
         await context.bot.send_message(
             chat_id=update.effective_chat.id,
@@ -263,6 +268,7 @@ async def add_task(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
     return CHOOSE_TYPE
 async def linked_in(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    reply_keyboard = [["Add your task", "Take new task"]]
     pattern = r'^https?://(www\.)?linkedin\.com/.*$'
     url = update.effective_message.text
     task_id = context.user_data["task_id"]
@@ -287,47 +293,29 @@ async def linked_in(update: Update, context: ContextTypes.DEFAULT_TYPE):
             new_task2 = (status)
             cursor.execute(insert_query2, (new_task2, update.effective_user.id,))
             connection.commit()
+            select = '''SELECT linkedin_name FROM registr WHERE id = %s;'''
+            cursor.execute(select, (update.effective_user.id,))
+            name = cursor.fetchone()[0]
+            insert_query = '''UPDATE add_task SET user_name = %s WHERE task_id = %s;'''
+            new_task = (name)
+            cursor.execute(insert_query, (new_task, task_id))
+            connection.commit()
             await context.bot.send_message(
-                chat_id=update.effective_chat.id,
-                text="Add your name exactly like on LinkedIn."
-            )
-            return USER_NAME
+            chat_id=update.effective_chat.id,
+            text="Great! You've added a new task. What do you prefer to do next?",
+            reply_markup=ReplyKeyboardMarkup(
+            reply_keyboard, 
+            resize_keyboard=True,
+            one_time_keyboard=True
+        )
+    )
+            return CHOOSE_OPTION
         else:
             await context.bot.send_message(
                 chat_id=update.effective_chat.id,
                 text="Incorrect URL. Please, make sure that you paste correct and full LinkedIn URL to your task"
             )
             return await write_function(update, context)
-async def user_name(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    reply_keyback = [["Add your task","Take new task"]]
-    cursor = connection.cursor()
-    task_id = context.user_data["task_id"]
-    # if update.effective_message.text == "Abort task creation and return to the menu":
-    #     delete_query = '''DELETE FROM add_task WHERE task_id = %s;'''
-    #     cursor.execute(delete_query, (task_id,))
-    #     connection.commit()
-    #     cursor.execute('''UPDATE add_task SET task_id = NULL WHERE task_id = %s;''',(task_id,))
-    #     connection.commit()
-    #     return await menu(update, context)
-    # else:
-    #     insert_query = '''UPDATE add_task SET user_name = %s WHERE task_id = %s;'''
-    #     new_task = (update.effective_message.text)
-    #     cursor.execute(insert_query, (new_task, task_id))
-    #     connection.commit()
-    insert_query = '''UPDATE add_task SET user_name = %s WHERE task_id = %s;'''
-    new_task = (update.effective_message.text)
-    cursor.execute(insert_query, (new_task, task_id))
-    connection.commit()
-    await context.bot.send_message(
-        chat_id=update.effective_chat.id,
-        text="Great! You've added a new task. What do you prefer to do next?",
-        reply_markup=ReplyKeyboardMarkup(
-            reply_keyback, 
-            resize_keyboard=True,
-            one_time_keyboard=True
-        )
-    )
-    return CHOOSE_OPTION
 async def choose_type(update: Update, context: ContextTypes.DEFAULT_TYPE):
     cursor = connection.cursor()
     task_id = context.user_data["task_id"]
@@ -644,23 +632,15 @@ async def send_top5(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 await context.bot.send_message(
                         chat_id=update.effective_chat.id,
                         text=f"""
-PLease, help {user_name}:
+PLease, help *{user_name}*:
 Visit this [link]({linked_url})
 And *{task_type}*
                         """,
                         parse_mode="Markdown"
                     )
                     # Отправляем запрос на подтверждение готовности выполнения задания
-                await context.bot.send_message(
-                        chat_id=update.effective_chat.id,
-                        text="Are you ready to complete this task?",
-                        reply_markup=ReplyKeyboardMarkup(
-                            reply_keyboard,
-                            resize_keyboard=True,
-                            one_time_keyboard=True
-                        )
-                    )
-                return CHOOSE_OPTION
+                
+                return finishing_task(update, context)
         else:
                     # Отправляем сообщение о том, что нет доступных задач в базе данных
                     await context.bot.send_message(

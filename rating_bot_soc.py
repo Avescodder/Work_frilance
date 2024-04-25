@@ -45,7 +45,7 @@ logging.getLogger("httpx").setLevel(logging.WARNING)
 
 logger = logging.getLogger(__name__)
 
-(CHOOSE_OPTION, REGISTRATION_INFO, ADD_TASK, ROLE, CITY, COMENTS, LIKES, REPOSTS, CHOOSE_TYPE, SKILLS, FOLLOWS, ERROR) = range(12)
+(CHOOSE_OPTION, REGISTRATION_INFO, ADD_TASK, ROLE, CITY, COMENTS, LIKES, REPOSTS, CHOOSE_TYPE, SKILLS, FOLLOWS, USER_NAME) = range(12)
 
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -167,7 +167,7 @@ async def time_zone(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 async def menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    reply_keyboard = [["Add your task","Take other's tasks"]]
+    reply_keyboard = [["Add your task","Take new task"]]
     await context.bot.send_message(
         chat_id=update.effective_chat.id,
         text="You have successfully signed up. Now you can use the service. Good luck",
@@ -194,12 +194,12 @@ async def choose_option(update: Update, context: ContextTypes.DEFAULT_TYPE):
             return await menu(update, context)
         else:
             return await add_task(update, context)
-    elif update.effective_message.text == "Take other's tasks":
+    elif update.effective_message.text == "Take new task":
         return await send_top5(update, context)
     elif update.effective_message.text == "Yes, sure.":
         await context.bot.send_message(
             chat_id=update.effective_chat.id,
-            text="Great! You can do this tasks!"
+            text="Great! Just do it and confirm it."
         )
         return await finishing_task(update, context)
     elif update.effective_message.text == "No, return back to the menu":
@@ -263,7 +263,6 @@ async def add_task(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
     return CHOOSE_TYPE
 async def linked_in(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    reply_keyback = [["Add your task","Take other's tasks"]]
     pattern = r'^https?://(www\.)?linkedin\.com/.*$'
     url = update.effective_message.text
     task_id = context.user_data["task_id"]
@@ -290,50 +289,75 @@ async def linked_in(update: Update, context: ContextTypes.DEFAULT_TYPE):
             connection.commit()
             await context.bot.send_message(
                 chat_id=update.effective_chat.id,
-                text="Great! You've added a new task. What do you prefer to do next?",
-                reply_markup=ReplyKeyboardMarkup(
-                    reply_keyback, 
-                    resize_keyboard=True,
-                    one_time_keyboard=True
-                )
+                text="Add your name exactly like on LinkedIn."
             )
-            return CHOOSE_OPTION
+            return USER_NAME
         else:
             await context.bot.send_message(
                 chat_id=update.effective_chat.id,
                 text="Incorrect URL. Please, make sure that you paste correct and full LinkedIn URL to your task"
             )
             return await write_function(update, context)
+async def user_name(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    reply_keyback = [["Add your task","Take new task"]]
+    cursor = connection.cursor()
+    task_id = context.user_data["task_id"]
+    # if update.effective_message.text == "Abort task creation and return to the menu":
+    #     delete_query = '''DELETE FROM add_task WHERE task_id = %s;'''
+    #     cursor.execute(delete_query, (task_id,))
+    #     connection.commit()
+    #     cursor.execute('''UPDATE add_task SET task_id = NULL WHERE task_id = %s;''',(task_id,))
+    #     connection.commit()
+    #     return await menu(update, context)
+    # else:
+    #     insert_query = '''UPDATE add_task SET user_name = %s WHERE task_id = %s;'''
+    #     new_task = (update.effective_message.text)
+    #     cursor.execute(insert_query, (new_task, task_id))
+    #     connection.commit()
+    insert_query = '''UPDATE add_task SET user_name = %s WHERE task_id = %s;'''
+    new_task = (update.effective_message.text)
+    cursor.execute(insert_query, (new_task, task_id))
+    connection.commit()
+    await context.bot.send_message(
+        chat_id=update.effective_chat.id,
+        text="Great! You've added a new task. What do you prefer to do next?",
+        reply_markup=ReplyKeyboardMarkup(
+            reply_keyback, 
+            resize_keyboard=True,
+            one_time_keyboard=True
+        )
+    )
+    return CHOOSE_OPTION
 async def choose_type(update: Update, context: ContextTypes.DEFAULT_TYPE):
     cursor = connection.cursor()
     task_id = context.user_data["task_id"]
     if update.effective_message.text == "Follow":
         insert_query0 = '''UPDATE add_task SET task_type = %s WHERE task_id = %s;'''
-        new_task0 = ("Follow")
+        new_task0 = ("Follow 👋")
         cursor.execute(insert_query0, (new_task0, task_id))
         connection.commit()
         return await many_follows_text(update, context)
     elif update.effective_message.text == "Endorse skill":
         insert_query5 = '''UPDATE add_task SET task_type = %s WHERE task_id = %s;'''
-        new = ("endorse_skill")
+        new = ("Endorse skill 🎓")
         cursor.execute(insert_query5, (new, task_id))
         connection.commit()
         return await many_skills_text(update, context)
     elif update.effective_message.text == "Like":
         insert_query1 = '''UPDATE add_task SET task_type = %s WHERE task_id = %s;'''
-        new_task = ("like")
+        new_task = ("Like 👍")
         cursor.execute(insert_query1, (new_task, task_id))
         connection.commit()
         return await many_likes_text(update, context)
     elif update.effective_message.text == "Comment":
         insert_query2 = '''UPDATE add_task SET task_type = %s WHERE task_id = %s;'''
-        new_task_2 = ("coment")
+        new_task_2 = ("Comment 💬")
         cursor.execute(insert_query2, (new_task_2, task_id))
         connection.commit()
         return await many_coments_text(update, context)
     elif update.effective_message.text == "Repost":
         insert_query3 = '''UPDATE add_task SET task_type = %s WHERE task_id = %s;'''
-        new_task_3 = ("repost")
+        new_task_3 = ("Repost ♻️")
         cursor.execute(insert_query3, (new_task_3, task_id))
         connection.commit()
         return await many_reposts_text(update, context)
@@ -577,7 +601,7 @@ async def send_top5(update: Update, context: ContextTypes.DEFAULT_TYPE):
     connection.commit()
     reply_keyboard = [["Yes, sure.", "No, return back to the menu"]]
     cursor.execute(f'''
-            SELECT task_id, task_type, linked_url, many, rating, user_id, rate_calc_f, rate_calc_s
+            SELECT task_id, task_type, linked_url, many, rating, user_id, rate_calc_f, rate_calc_s, user_name
             FROM add_task
             WHERE many > 0 AND user_id != {update.effective_user.id} AND task_id NOT IN (SELECT do_task_id FROM do_task WHERE task_user_id = {update.effective_user.id})
             ORDER BY rating DESC
@@ -591,7 +615,7 @@ async def send_top5(update: Update, context: ContextTypes.DEFAULT_TYPE):
         total_rate2 = sum(rate[7] for rate in top_tasks)
         revoke_coefficient = 1.1
         rank = (1 * total_rate * total_rate2) * revoke_coefficient
-        for task_id, task_type, linked_url, many, rating, user_id, rate_calc_f, rate_calc_s in top_tasks:
+        for task_id, task_type, linked_url, many, rating, user_id, rate_calc_f, rate_calc_s, user_name in top_tasks:
                 insert = '''INSERT INTO do_task (do_task_id, task_user_id) VALUES (%s, %s);'''
                 cursor.execute(insert, (task_id, update.effective_user.id))
                 connection.commit()
@@ -602,9 +626,10 @@ async def send_top5(update: Update, context: ContextTypes.DEFAULT_TYPE):
                     do_many = %s,
                     do_rating = %s,
                     rate_calc_f = %s,
-                    first_user_id = %s
+                    first_user_id = %s,
+                    user_name = %s
                 WHERE task_user_id = %s;'''
-                cursor.execute(update_query, (task_type, linked_url, many, rating, rank, user_id, update.effective_user.id,))
+                cursor.execute(update_query, (task_type, linked_url, many, rating, rank, user_id, user_name, update.effective_user.id,))
                 connection.commit()
                 insert_query = '''UPDATE do_task SET start_time = CURRENT_TIMESTAMP WHERE do_task_id = %s;'''
                 cursor.execute(insert_query, (task_id,))
@@ -614,20 +639,21 @@ async def send_top5(update: Update, context: ContextTypes.DEFAULT_TYPE):
                     # Отправляем сообщение с ссылкой
                 await context.bot.send_message(
             chat_id=update.effective_chat.id,
-            text="Now. you'll receive 1 task to complete in 15 minutes. Complete it and increase your rating"
+            text="Here is your task. Please complete it in 15 minutes"
         )
                 await context.bot.send_message(
                         chat_id=update.effective_chat.id,
                         text=f"""
-The link to the task: [link]({linked_url})
-You have to: *{task_type}*
+PLease, help {user_name}:
+Visit this [link]({linked_url})
+And *{task_type}*
                         """,
                         parse_mode="Markdown"
                     )
                     # Отправляем запрос на подтверждение готовности выполнения задания
                 await context.bot.send_message(
                         chat_id=update.effective_chat.id,
-                        text="Are you ready to complete these tasks?",
+                        text="Are you ready to complete this task?",
                         reply_markup=ReplyKeyboardMarkup(
                             reply_keyboard,
                             resize_keyboard=True,
@@ -656,7 +682,7 @@ async def finishing_task(update: Update, context: ContextTypes.DEFAULT_TYPE):
     keyboard = [["All tasks are completed"]]
     await context.bot.send_message(
         chat_id=update.effective_chat.id,
-        text="You have 30 minutes to complete these task. If you skip it, your rating will be DECREASED.",
+        text="You have 15 minutes to complete the task. If you skip it, your rating will be decreased.",
         reply_markup=ReplyKeyboardMarkup(
             keyboard,
             resize_keyboard=True,
@@ -792,7 +818,8 @@ def main():
                 ROLE: [MessageHandler(filters.TEXT, role)],
                 REGISTRATION_INFO: [MessageHandler(filters.TEXT, reg_info)],
                 SKILLS: [MessageHandler(filters.TEXT, many_skills)],
-                FOLLOWS: [MessageHandler(filters.TEXT, many_follows)]
+                FOLLOWS: [MessageHandler(filters.TEXT, many_follows)],
+                USER_NAME: [MessageHandler(filters.TEXT, user_name)]
 
                 },
         fallbacks=[],

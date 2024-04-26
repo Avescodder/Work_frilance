@@ -209,7 +209,7 @@ async def choose_option(update: Update, context: ContextTypes.DEFAULT_TYPE):
             return await add_task(update, context)
     elif update.effective_message.text == "Take new task":
         return await send_top5(update, context)
-    elif update.effective_message.text == "All tasks are completed":
+    elif update.effective_message.text == "✅ Done":
         await context.bot.send_message(
             chat_id=update.effective_chat.id,
             text="Great! You've completed all tasks. You can return back to the menu."
@@ -659,7 +659,7 @@ And *{task_type}*
             return await menu(update, context)
 
 async def finishing_task(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    keyboard = [["All tasks are completed"]]
+    keyboard = [["✅ Done"]]
     await context.bot.send_message(
         chat_id=update.effective_chat.id,
         text="You have 15 minutes to complete the task. If you skip it, your rating will be decreased.",
@@ -669,7 +669,7 @@ async def finishing_task(update: Update, context: ContextTypes.DEFAULT_TYPE):
             one_time_keyboard=True
         )
     )
-    time_delta = datetime.timedelta(seconds=15)
+    time_delta = datetime.timedelta(minutes=1)
     context.job_queue.run_once(chek_chek, time_delta, chat_id=update.effective_chat.id, data=update)
     return CHOOSE_OPTION
 

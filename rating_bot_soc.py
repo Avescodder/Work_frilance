@@ -587,7 +587,6 @@ async def send_top5(update: Update, context: ContextTypes.DEFAULT_TYPE):
 '''
     cursor.execute(create_table)
     connection.commit()
-    reply_keyboard = [["Yes, sure.", "No, return back to the menu"]]
     cursor.execute(f'''
             SELECT task_id, task_type, linked_url, many, rating, user_id, rate_calc_f, rate_calc_s, user_name
             FROM add_task

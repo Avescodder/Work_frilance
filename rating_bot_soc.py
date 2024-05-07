@@ -806,7 +806,8 @@ def main():
     )
 
     application.add_handler(conv_handler)
-    application.job_queue.run_daily(clear_task_limit,datetime.time(hour=11,minute=25,tzinfo=pytz.timezone('Europe/London')))
+    time_obj = datetime.time(hour=11, minute=25, tzinfo=pytz.timezone('Europe/London'))
+    application.job_queue.run_daily(clear_task_limit, time_obj)
     hour_now = (datetime.datetime.now(pytz.timezone('Europe/London')).hour + 1) % 24
     minute_now = datetime.datetime.now(pytz.timezone('Europe/London')).minute
 

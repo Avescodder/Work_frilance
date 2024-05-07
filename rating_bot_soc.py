@@ -9,7 +9,7 @@ from telegram.ext import (
     ConversationHandler
 )
 from telegram import ReplyKeyboardMarkup
-import datetime
+from datetime import datetime
 import psycopg2
 import re
 import pytz

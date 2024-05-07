@@ -9,6 +9,7 @@ from telegram.ext import (
     ConversationHandler
 )
 from telegram import ReplyKeyboardMarkup
+import datetime
 from datetime import datetime
 import psycopg2
 import re
@@ -769,13 +770,13 @@ async def clear_task_limit(context):
     cursor.execute(query, user_list)
 
 async def send_everyone(context):
-    cursor.execute('''SELECT id, time_zone FROM registr;''')
+    cursor.execute('''SELECT user_id, time_zone FROM registr;''')
     users = cursor.fetchall()
     for user_id, timezone_offset in users:
         utc_now = datetime.now(datetime.UTC)
         user_timezone = pytz.timezone(timezone_offset)
         user_local_time = utc_now.replace(tzinfo=pytz.utc).astimezone(user_timezone)
-        if user_local_time.hour == 20 and user_local_time.minute == 45:
+        if user_local_time.hour == 20 and user_local_time.minute == 40:
             context.bot.send_message(chat_id=user_id, text="Hi! How is your day? Let's add some tasks to boost your profile and take some tasks to help the community.")
 
 
@@ -816,7 +817,7 @@ def main():
         next_hour = hour_now
         next_minute = (minute_now + 1) % 60
 
-    application.job_queue.run_repeating(send_everyone, datetime.timedelta(minutes=10), datetime.time(hour=next_hour, minute=next_minute))
+    application.job_queue.run_repeating(send_everyone, datetime.timedelta(minutes=1), datetime.time(hour=next_hour, minute=next_minute))
 
     application.run_polling(allowed_updates=Update.ALL_TYPES)
 

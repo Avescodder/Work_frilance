@@ -798,7 +798,7 @@ def main():
                 REGISTRATION_INFO: [MessageHandler(filters.TEXT, reg_info)],
                 SKILLS: [MessageHandler(filters.TEXT, many_skills)],
                 FOLLOWS: [MessageHandler(filters.TEXT, many_follows)],
-                USER_NAME: [MessageHandler(filters.TEXT, user_name)]
+                USER_NAME: [MessageHandler(filters.TEXT, user_name)],
 
                 },
         fallbacks=[],

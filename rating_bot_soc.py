@@ -816,7 +816,7 @@ def main():
         next_hour = hour_now
         next_minute = (minute_now + 1) % 60
 
-    application.job_queue.run_repeating(send_everyone, datetime.timedelta(minutes=1), datetime.time(hour=next_hour, minute=next_minute))
+    application.job_queue.run_repeating(send_everyone, datetime.timedelta(minute=1), datetime.time(hour=next_hour, minute=next_minute))
 
     application.run_polling(allowed_updates=Update.ALL_TYPES)
 

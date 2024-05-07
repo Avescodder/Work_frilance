@@ -775,7 +775,7 @@ async def send_everyone(context):
         utc_now = datetime.utcnow()
         user_timezone = pytz.timezone(timezone_offset)
         user_local_time = utc_now.replace(tzinfo=pytz.utc).astimezone(user_timezone)
-        if user_local_time.hour == 12 and user_local_time.minute == 10:
+        if user_local_time.hour == 15 and user_local_time.minute == 00:
             context.bot.send_message(chat_id=user_id, text="Hi! How is your day? Let's add some tasks to boost your profile and take some tasks to help the community.")
 
 

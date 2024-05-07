@@ -776,7 +776,7 @@ async def send_everyone(context):
         utc_now = datetime.now(datetime.UTC)
         user_timezone = pytz.timezone(timezone_offset)
         user_local_time = utc_now.replace(tzinfo=pytz.utc).astimezone(user_timezone)
-        if user_local_time.hour == 22:
+        if user_local_time.hour == 13:
             context.bot.send_message(chat_id=user_id, text="Hi! How is your day? Let's add some tasks to boost your profile and take some tasks to help the community.")
 
 
@@ -807,14 +807,12 @@ def main():
 
     application.add_handler(conv_handler)
     application.job_queue.run_daily(clear_task_limit, datetime.time(hour=11, minute=25, tzinfo=pytz.timezone('Europe/London')))
-    hour_now = (datetime.datetime.now(pytz.timezone('Europe/London')).hour + 1) % 24
-    minute_now = datetime.datetime.now(pytz.timezone('Europe/London')).minute
+    hour_now = (datetime.datetime.now().hour + 1) % 24
 
 # Определяем следующий час и минуту для запуска задачи
-    
-    next_hour = (hour_now + 1) % 24
 
-    application.job_queue.run_repeating(send_everyone, datetime.timedelta(minutes=1), datetime.time(hour=next_hour, minute=0))
+
+    application.job_queue.run_repeating(send_everyone, datetime.timedelta(minutes=30), datetime.time(hour=hour_now, minute=0))
 
     application.run_polling(allowed_updates=Update.ALL_TYPES)
 

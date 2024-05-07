@@ -10,7 +10,7 @@ from telegram.ext import (
 )
 from telegram import ReplyKeyboardMarkup
 import datetime
-from datetime import datetime
+# from datetime import datetime
 import psycopg2
 import re
 import pytz
@@ -776,7 +776,7 @@ async def send_everyone(context):
         utc_now = datetime.now(datetime.UTC)
         user_timezone = pytz.timezone(timezone_offset)
         user_local_time = utc_now.replace(tzinfo=pytz.utc).astimezone(user_timezone)
-        if user_local_time.hour == 20 and user_local_time.minute == 40:
+        if user_local_time.hour == 20 and user_local_time.minute == 45:
             context.bot.send_message(chat_id=user_id, text="Hi! How is your day? Let's add some tasks to boost your profile and take some tasks to help the community.")
 
 
@@ -806,8 +806,7 @@ def main():
     )
 
     application.add_handler(conv_handler)
-    time_obj = datetime.time(hour=11, minute=25, tzinfo=pytz.timezone('Europe/London'))
-    application.job_queue.run_daily(clear_task_limit, time_obj)
+    application.job_queue.run_daily(clear_task_limit, datetime.time(hour=11, minute=25, tzinfo=pytz.timezone('Europe/London')))
     hour_now = (datetime.datetime.now(pytz.timezone('Europe/London')).hour + 1) % 24
     minute_now = datetime.datetime.now(pytz.timezone('Europe/London')).minute
 

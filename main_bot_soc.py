@@ -770,7 +770,7 @@ async def clear_task_limit(context):
     cursor.execute(query, user_list)
 
 async def send_everyone(context):
-    cursor.execute('''SELECT user_id, time_zone FROM registr;''')
+    cursor.execute('''SELECT id, time_zone FROM registr;''')
     users = cursor.fetchall()
     for user_id, timezone_offset in users:
         utc_now = datetime.now(datetime.UTC)

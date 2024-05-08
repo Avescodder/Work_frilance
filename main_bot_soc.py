@@ -773,7 +773,7 @@ async def send_everyone(context):
     cursor.execute('''SELECT id, time_zone FROM registr;''')
     users = cursor.fetchall()
     for user_id, timezone_offset in users:
-        utc_now = datetime.now(datetime.UTC)
+        utc_now = datetime.datetime.now(datetime.UTC)
         user_timezone = pytz.timezone(timezone_offset)
         user_local_time = utc_now.replace(tzinfo=pytz.utc).astimezone(user_timezone)
         if user_local_time.hour == 13:

@@ -29,7 +29,7 @@ def get_temporary_access_token(client_id, client_secret):
 # Пример использования функции для получения временного ключа доступа
 
 def get_chat_info(api_token, client_id):
-    url = "https://api.avito.ru/messenger/v2/accounts/{client_id}/chats"
+    url = f"https://api.avito.ru/messenger/v2/{client_id}/chats"
     headers = {
         "messenger" : "read",
         "Content-Type": "application/json",
@@ -39,7 +39,7 @@ def get_chat_info(api_token, client_id):
         "user_id" : client_id
     }
     try:
-        response = requests.get(url, headers=headers, data=data)
+        response = requests.get(url, headers=headers, params=data)
         response.raise_for_status()  # Проверка на успешный ответ
         chats_info = response.json()
         return chats_info

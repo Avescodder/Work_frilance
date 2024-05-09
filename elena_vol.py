@@ -6,6 +6,7 @@ import schedule
 import time
 client_id = "I6PdLx7Wy21W2Upg6gvt"
 client_secret = "lO1R355g_yKz5ki3B0_EVYLYU0BN6omV5i1_alyu"
+api_token = "UA1IVRK5Qhm6LWEu9iuodgF_qs1Tzk-3JuyTKtWf"
 def get_temporary_access_token(client_id, client_secret):
     url = "https://api.avito.ru/token/"
     headers = {
@@ -47,11 +48,11 @@ def get_chat_info(api_token, client_id):
 
 
 def main():
+    schedule.every(24).hours.do(get_temporary_access_token, client_id, client_secret)
     print(get_chat_info(api_token, client_id))
-    schedule.every(24).hours.do(get_temporary_access_token(client_id, client_secret))
-    while True:
-        schedule.run_pending()
-        time.sleep(1)
 
 if __name__ == "__main__":
     main()
+    while True:
+        schedule.run_pending()
+        time.sleep(1)

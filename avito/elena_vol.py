@@ -3,6 +3,7 @@
 #client_secret = lO1R355g_yKz5ki3B0_EVYLYU0BN6omV5i1_alyu
 import aiohttp
 import asyncio
+import aiosqlite
 
 client_id = "0j6FFI-Ii1uyp8Nm_4i_"
 user_id = "103286876"
@@ -48,6 +49,7 @@ async def get_chat_info(api_token, client_id):
             chat_ids = []
             for chat in chats_info["chats"]:  # Обращаемся к значению ключа "chats"
                 chat_ids.append(chat['id'])
+            print(chat_ids)
             return chat_ids
 
 
@@ -111,31 +113,41 @@ async def get_chat_messages(api_token, user_id, chat_id, limit=100, offset=0):
             response.raise_for_status()  # Проверка на успешный ответ
             messages_info = await response.json()
             return messages_info
-        
+async def save_message_info(db_path, message_id, author_id, chat_id, status="unknown"):
+    # Пропускаем запись, если author_id равен нулю
+    if author_id == "0" or author_id == 0:
+        print("Запись с author_id равным нулю не будет добавлена")
+        return
+
+    async with aiosqlite.connect(db_path) as db:
+        # Проверяем, существует ли уже запись с таким author_id и chat_id
+        async with db.execute("SELECT COUNT(*) FROM dialogs WHERE author_id = ? AND chat_id = ?", (author_id, chat_id)) as cursor:
+            count = await cursor.fetchone()
+            if count[0] > 0:
+                # Запись с таким author_id и chat_id уже существует
+                print(f"Запись с author_id {author_id} и chat_id {chat_id} уже существует, запись не будет добавлена.")
+                return False
+            else:
+                # Вставка новой записи с учетом chat_id
+                await db.execute("INSERT INTO dialogs (author_id, chat_id, status) VALUES (?, ?, ?)", (author_id, chat_id, status))
+                await db.commit()
+                print(f"Запись с author_id {author_id} и chat_id {chat_id} успешно добавлена.")
+                return True
+async def process_and_save_messages(api_token, user_id, chat_id, db_path):
+    messages_info = await get_chat_messages(api_token, user_id, chat_id)
+    for message in messages_info.get('messages', []):
+        message_id = message['id']
+        author_id = message['author_id']
+        await save_message_info(db_path, message_id, author_id, chat_id)
+
+
 async def main():
     async with aiohttp.ClientSession(connector=aiohttp.TCPConnector(ssl=False)):
-        while True:
-            print(await get_temporary_access_token(client_id, client_secret))
-            chat_ids = await get_chat_info(api_token, client_id)
-            print(chat_ids)
-            # tasks = []
-            # for chat_id in chat_ids:
-            #     tasks.append(send_question(api_token, user_id, [chat_id], 1, "Какой ваш любимый цвет? (1. Красный, 2. Синий, 3. Зеленый)"))
-            print(await get_chat_messages(api_token, user_id, chat_ids))
-            # await asyncio.gather(*tasks)
-            # messages_dict = await get_messages(api_token, user_id, chat_ids)
-            # for chat_id, messages_info in messages_dict.items():
-            #     if "messages" in messages_info and messages_info["messages"]:
-            #         if "text" in messages_info["messages"][0]:
-            #             process_answer(messages_info["messages"][0]["text"])
-            #         else:
-            #             print("В первом сообщении нет текста")
-            #     else:
-            #         print("Нет сообщений в чате")
-
-            await asyncio.sleep(60)  # Пауза между сканированием чатов
-
-
+        print(await get_temporary_access_token(client_id, client_secret))
+        chat_ids = await get_chat_info(api_token, client_id)
+        print(chat_ids)
+        for chat_id in chat_ids:  # Ensure chat_id is used correctly in the loop
+            await process_and_save_messages(api_token, user_id, chat_id, db_path="db_avito.sqlite3")  # Pass each chat_id individually
+            
 if __name__ == "__main__":
     asyncio.run(main())
-

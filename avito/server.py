@@ -10,33 +10,31 @@ load_dotenv()
 
 connector = aiohttp.TCPConnector(ssl=False)
 
-ngrok_url = 'https://9da0-85-240-119-67.ngrok-free.app'
+ngrok_url = 'https://18a0-5-228-89-161.ngrok-free.app'
 
 async def register_avito_webhook(api_token, client_secret):
-    url = "https://api.avito.ru/v3/webhook"
+    url = "https://api.avito.ru/messenger/v3/webhook"
     headers = {
         "Authorization": f"Bearer {api_token}",
         "Content-Type": "application/json",
-        "ngrok-skip-browser-warning": ''
     }
     payload = {
         "url": f"{ngrok_url}/avito_webhook",
-        "secret": client_secret,
-        "events": ["message_created"],
     }
 
     async with aiohttp.ClientSession(connector=aiohttp.TCPConnector(ssl=False)) as session:
         async with session.post(url, headers=headers, json=payload) as response:
+            response.raise_for_status()
             if response.status == 200:
                 print('Вебхук зарегистрирован')
             else:
                 print(response.status)
-            print(await response.text())
+                print(await response.text())
 
 async def handle_avito_webhook(request):
     data = await request.json()
     print(json.dumps(data, indent=2))
-    return web.Response(text='OK')
+    return web.Response(status=200, text='ok')
 
 
 # async def running_server(api_token, client_secret):
@@ -57,7 +55,7 @@ async def main():
         os.environ["API_TOKEN"] = api_token
 
     app = web.Application()
-    app.add_routes([web.post("/avito_webhook", handle_avito_webhook)])
+    app.router.add_post('/avito_webhook' , handle_avito_webhook)
     runner = web.AppRunner(app)
     await runner.setup()
     site = web.TCPSite(runner, 'localhost', 8080)

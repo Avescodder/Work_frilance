@@ -12,7 +12,7 @@ connector = aiohttp.TCPConnector(ssl=False)
 
 ngrok_url = 'https://18a0-5-228-89-161.ngrok-free.app'
 
-async def register_avito_webhook(api_token, client_secret):
+async def register_avito_webhook(api_token):
     url = "https://api.avito.ru/messenger/v3/webhook"
     headers = {
         "Authorization": f"Bearer {api_token}",
@@ -33,15 +33,11 @@ async def register_avito_webhook(api_token, client_secret):
 
 async def handle_avito_webhook(request):
     data = await request.json()
+    data_json = json.loads(data)
+    # вызов своей функции, которая работает с сообщениями
+    # if который проверяет author_id от 2го аккаунта
     print(json.dumps(data, indent=2))
     return web.Response(status=200, text='ok')
-
-
-# async def running_server(api_token, client_secret):
-#     await register_avito_webhook(api_token, client_secret)
-#     app = web.Application()
-#     app.add_routes([web.post("/avito_webhook", handle_avito_webhook)])
-#     await web.run_app(app, host="localhost", port=8080)
 
 
 async def main():

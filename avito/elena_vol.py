@@ -38,8 +38,7 @@ async def get_chat_info(api_token, client_id):
         "Authorization": f"Bearer {api_token}"
     }
     data = {
-        "user_id": user_id,
-        "unread_only": "true"
+        "user_id": user_id
     }
 
     async with aiohttp.ClientSession(connector=aiohttp.TCPConnector(ssl=False)) as session:
@@ -97,28 +96,44 @@ def process_answer(answer):
     else:
         print("Пользователь ответил на другой вопрос")
 
+async def get_chat_messages(api_token, user_id, chat_id, limit=100, offset=0):
+    url = f"https://api.avito.ru/messenger/v3/accounts/{user_id}/chats/{chat_id}/messages/"
+    headers = {
+        "Authorization": f"Bearer {api_token}"
+    }
+    params = {
+        "limit": limit,
+        "offset": offset
+    }
 
+    async with aiohttp.ClientSession(connector=aiohttp.TCPConnector(ssl=False)) as session:
+        async with session.get(url, headers=headers, params=params) as response:
+            response.raise_for_status()  # Проверка на успешный ответ
+            messages_info = await response.json()
+            return messages_info
+        
 async def main():
-    # async with aiohttp.ClientSession(connector=aiohttp.TCPConnector(ssl=False)) as session:
-    #     while True:
+    async with aiohttp.ClientSession(connector=aiohttp.TCPConnector(ssl=False)):
+        while True:
             print(await get_temporary_access_token(client_id, client_secret))
-    #         chat_ids = await get_chat_info(api_token, client_id)
-    #         print(chat_ids)
-    #         tasks = []
-    #         for chat_id in chat_ids:
-    #             tasks.append(send_question(api_token, user_id, [chat_id], 1, "Какой ваш любимый цвет? (1. Красный, 2. Синий, 3. Зеленый)"))
-    #         await asyncio.gather(*tasks)
-    #         messages_dict = await get_messages(api_token, user_id, chat_ids)
-    #         for chat_id, messages_info in messages_dict.items():
-    #             if "messages" in messages_info and messages_info["messages"]:
-    #                 if "text" in messages_info["messages"][0]:
-    #                     process_answer(messages_info["messages"][0]["text"])
-    #                 else:
-    #                     print("В первом сообщении нет текста")
-    #             else:
-    #                 print("Нет сообщений в чате")
+            chat_ids = await get_chat_info(api_token, client_id)
+            print(chat_ids)
+            # tasks = []
+            # for chat_id in chat_ids:
+            #     tasks.append(send_question(api_token, user_id, [chat_id], 1, "Какой ваш любимый цвет? (1. Красный, 2. Синий, 3. Зеленый)"))
+            print(await get_chat_messages(api_token, user_id, chat_ids))
+            # await asyncio.gather(*tasks)
+            # messages_dict = await get_messages(api_token, user_id, chat_ids)
+            # for chat_id, messages_info in messages_dict.items():
+            #     if "messages" in messages_info and messages_info["messages"]:
+            #         if "text" in messages_info["messages"][0]:
+            #             process_answer(messages_info["messages"][0]["text"])
+            #         else:
+            #             print("В первом сообщении нет текста")
+            #     else:
+            #         print("Нет сообщений в чате")
 
-    #         await asyncio.sleep(60)  # Пауза между сканированием чатов
+            await asyncio.sleep(60)  # Пауза между сканированием чатов
 
 
 if __name__ == "__main__":

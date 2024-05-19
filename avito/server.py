@@ -35,6 +35,7 @@ async def handle_avito_webhook(request):
     data = await request.json()
     data_json = json.loads(data)
     # вызов своей функции, которая работает с сообщениями
+
     # if который проверяет author_id от 2го аккаунта
     print(json.dumps(data, indent=2))
     return web.Response(status=200, text='ok')

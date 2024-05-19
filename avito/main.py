@@ -51,7 +51,7 @@ async def get_chat_info(api_token, client_id):
             return chat_ids
         
 #получение сообщений
-async def get_chat_messages(api_token, user_id, chat_id, limit=100, offset=0):
+async def get_chat_messages(api_token, user_id, chat_id, limit=1, offset=0):
     url = f"https://api.avito.ru/messenger/v3/accounts/{user_id}/chats/{chat_id}/messages/"
     headers = {
         "Authorization": f"Bearer {api_token}"
@@ -66,7 +66,6 @@ async def get_chat_messages(api_token, user_id, chat_id, limit=100, offset=0):
         async with session.get(url, headers=headers, params=params) as response:
             response.raise_for_status()  # Проверка на успешный ответ
             messages_info = await response.json()
-            print(messages_info)
             return messages_info
 async def mark_chat_as_read(api_token, user_id, chat_id):
     url = f"https://api.avito.ru/messenger/v1/accounts/{user_id}/chats/{chat_id}/read"
@@ -158,6 +157,7 @@ async def monitor_chat_responses(api_token, user_id, chat_id, last_message_id, m
             print(f"Мониторинг чата {chat_id}")
             print(user_id)
             messages_info = await get_chat_messages(api_token, user_id, chat_id[0])
+            print(messages_info)
             for message in messages_info.get('messages', []):
 
                 if message['id'] > last_message_id and message['author_id'] != user_id and message.get('content', {}).get('text') != message_text:
@@ -180,7 +180,8 @@ async def monitor_chat_responses(api_token, user_id, chat_id, last_message_id, m
                         await send_message_to_chat(api_token, user_id, chat_id, "Пожалуйста, ответьте на сообщение в правильном формате.", status=1)
                         last_message_id = message['id']  # Обновляем ID последнего сообщения для продолжения мониторинга
                         continue  # Продолжаем мониторинг чата
-
+                else:
+                    print(f"Сообщение с ID {message['id']} не является новым.")
 # Обновление статуса в базе данных и отправка нового вопроса
 async def update_status_and_ask_question(api_token, user_id, chat_id, db_path, new_question):
     # Обновляем статус в базе данных на 2
@@ -200,12 +201,17 @@ async def monitor_chat_responses_second_quest(api_token, user_id, chat_id, last_
         while True:
             await asyncio.sleep(30)  # Пауза на 30 секунд перед следующей проверкой
             print(f"Мониторинг чата {chat_id}")
+            print(user_id)
             messages_info = await get_chat_messages(api_token, user_id, chat_id[0])
-            await mark_chat_as_read(api_token, user_id, chat_id[0])
+            print(messages_info)
             for message in messages_info.get('messages', []):
-                if message['id'] > last_message_id and message['author_id'] != user_id and message.get('content', {}).get('text') != message_text:  # Проверяем, что это новое сообщение от пользователя
+
+                if message['id'] > last_message_id and message['author_id'] != user_id and message.get('content', {}).get('text') != message_text:
+                    await mark_chat_as_read(api_token, user_id, chat_id[0])
+                    print(message["id"], message["author_id"])  # Проверяем, что это новое сообщение от пользователя
                     message_content = message.get('content', {})
                     user_response = message_content.get('text', 'Сообщение не содержит текста')
+                    last_message_id = message['id']
                     print(f"Новое сообщение от пользователя: {user_response}")
                     if user_response == "1":
                         print("Ответ пользователя равен одному. Заливаем в Амо срм.")
@@ -235,13 +241,17 @@ async def monitor_chat_responses_third_quest(api_token, user_id, chat_id, last_m
     async with aiohttp.ClientSession(connector=aiohttp.TCPConnector(ssl=False)):
         while True:
             await asyncio.sleep(30)  # Пауза на 30 секунд перед следующей проверкой
-            print(f"Мониторинг чата {chat_id}")
+            print(user_id)
             messages_info = await get_chat_messages(api_token, user_id, chat_id[0])
-            await mark_chat_as_read(api_token, user_id, chat_id[0])
+            print(messages_info)
             for message in messages_info.get('messages', []):
-                if message['id'] > last_message_id and message['author_id'] != user_id and message.get('content', {}).get('text') != message_text:  # Проверяем, что это новое сообщение от пользователя
+
+                if message['id'] > last_message_id and message['author_id'] != user_id and message.get('content', {}).get('text') != message_text:
+                    await mark_chat_as_read(api_token, user_id, chat_id[0])
+                    print(message["id"], message["author_id"])  # Проверяем, что это новое сообщение от пользователя
                     message_content = message.get('content', {})
                     user_response = message_content.get('text', 'Сообщение не содержит текста')
+                    last_message_id = message['id']
                     print(f"Новое сообщение от пользователя: {user_response}")
                     if user_response == "1":
                         print("Ответ пользователя равен одному. Заливаем в Амо срм.")
@@ -271,13 +281,17 @@ async def monitor_chat_responses_fourth_quest(api_token, user_id, chat_id, last_
     async with aiohttp.ClientSession(connector=aiohttp.TCPConnector(ssl=False)):
         while True:
             await asyncio.sleep(30)  # Пауза на 30 секунд перед следующей проверкой
-            print(f"Мониторинг чата {chat_id}")
+            print(user_id)
             messages_info = await get_chat_messages(api_token, user_id, chat_id[0])
-            await mark_chat_as_read(api_token, user_id, chat_id[0])
+            print(messages_info)
             for message in messages_info.get('messages', []):
-               if message['id'] > last_message_id and message['author_id'] != user_id and message.get('content', {}).get('text') != message_text:  # Проверяем, что это новое сообщение от пользователя
+
+                if message['id'] > last_message_id and message['author_id'] != user_id and message.get('content', {}).get('text') != message_text:
+                    await mark_chat_as_read(api_token, user_id, chat_id[0])
+                    print(message["id"], message["author_id"])  # Проверяем, что это новое сообщение от пользователя
                     message_content = message.get('content', {})
                     user_response = message_content.get('text', 'Сообщение не содержит текста')
+                    last_message_id = message['id']
                     print(f"Новое сообщение от пользователя: {user_response}")
                     if user_response == "1":
                         print("Ответ пользователя равен одному. Заливаем в Амо срм.")

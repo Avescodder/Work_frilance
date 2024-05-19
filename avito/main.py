@@ -155,9 +155,7 @@ async def monitor_chat_responses(api_token, user_id, chat_id, last_message_id, m
         while True:
             await asyncio.sleep(30)  # Пауза на 30 секунд перед следующей проверкой
             print(f"Мониторинг чата {chat_id}")
-            print(user_id)
             messages_info = await get_chat_messages(api_token, user_id, chat_id[0])
-            print(messages_info)
             for message in messages_info.get('messages', []):
 
                 if message['id'] > last_message_id and message['author_id'] != user_id and message.get('content', {}).get('text') != message_text:

@@ -1,8 +1,6 @@
 import aiosqlite
 import aiohttp
-from aiohttp import web
-import asyncio
-import json
+
 
 
 db_path="db_avito.sqlite3"
@@ -16,14 +14,15 @@ db_path="db_avito.sqlite3"
 # db_path = "db_avito.sqlite3"
 
 async def check_chat_and_get_status(chat_id, author_id, api_token, user_id, text):
-    async with aiosqlite.connect(db_path) as db:
-        cursor = await db.execute("SELECT status FROM dialogs WHERE chat_id = ? AND author_id = ?", (chat_id, author_id))
-        row = await cursor.fetchone()
-        await cursor.close()
-        if row:
-            return await process_message(chat_id, author_id, row[0], text, api_token, user_id)
-        else:
-            return await add_new_chat(chat_id, author_id, api_token, user_id)
+    async with aiohttp.ClientSession(connector=aiohttp.TCPConnector(ssl=False)):
+        async with aiosqlite.connect(db_path) as db:
+            cursor = await db.execute("SELECT status FROM dialogs WHERE chat_id = ? AND author_id = ?", (chat_id, author_id))
+            row = await cursor.fetchone()
+            await cursor.close()
+            if row:
+                return await process_message(chat_id, author_id, row[0], text, api_token, user_id)
+            else:
+                return await add_new_chat(chat_id, author_id, api_token, user_id)
 
 async def add_new_chat(chat_id, author_id, api_token, user_id):
     async with aiosqlite.connect(db_path) as db:

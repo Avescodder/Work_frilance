@@ -1,7 +1,6 @@
 import aiohttp
 from aiohttp import web
 import asyncio
-import json
 from dotenv import load_dotenv
 import os
 from elena_vol import get_temporary_access_token
@@ -9,9 +8,7 @@ from sup_functions import check_chat_and_get_status
 
 load_dotenv()
 
-connector = aiohttp.TCPConnector(ssl=False)
-
-ngrok_url = 'https://1b09-85-240-119-67.ngrok-free.app'
+ngrok_url = 'https://081b-194-38-148-2.ngrok-free.app '
 elena_id = 103286876
 async def register_avito_webhook(api_token):
     url = "https://api.avito.ru/messenger/v3/webhook"

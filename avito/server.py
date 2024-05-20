@@ -6,13 +6,15 @@ from dotenv import load_dotenv
 import os
 from elena_vol import get_temporary_access_token
 from sup_functions import check_chat_and_get_status
+from database_avito import creation_database
 
 load_dotenv()
 
 connector = aiohttp.TCPConnector(ssl=False)
 
-ngrok_url = 'https://1b09-85-240-119-67.ngrok-free.app'
+ngrok_url = 'https://7b8c-31-173-81-157.ngrok-free.app'
 elena_id = 103286876
+db_path="db_avito.sqlite3"
 async def register_avito_webhook(api_token):
     url = "https://api.avito.ru/messenger/v3/webhook"
     headers = {
@@ -63,6 +65,7 @@ async def main():
             print(f"api_token: {api_token}")
             os.environ["API_TOKEN"] = api_token
 
+        await creation_database(db_path)
         app = web.Application()
         app.router.add_post('/avito_webhook' , handle_avito_webhook)
         runner = web.AppRunner(app)

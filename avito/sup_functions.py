@@ -32,7 +32,7 @@ async def add_new_chat(chat_id, author_id, api_token, user_id):
     return await send_message(chat_id, messages_dict.get(1, "Спасибо за ваш ответ"), api_token, user_id)
 
 async def send_message(chat_id, message, api_token, user_id):
-    api_url = f"https://api.avito.ru/messenger/v1/accounts/{user_id}/chats/{chat_id[0]}/messages"
+    api_url = f"https://api.avito.ru/messenger/v1/accounts/{user_id}/chats/{chat_id}/messages"
 
     headers = {
         "Authorization": f"Bearer {api_token}",
@@ -47,6 +47,7 @@ async def send_message(chat_id, message, api_token, user_id):
     
     async with aiohttp.ClientSession(connector=aiohttp.TCPConnector(ssl=False)) as session:
         async with session.post(api_url, headers=headers, json=data) as response:
+            response.raise_for_status()
             if response.status == 200:
                 print("Сообщение отправлено")
             else:
